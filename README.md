@@ -1,7 +1,5 @@
 # 🛡️ TENET AI
 
-<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/eb5491c1-a62a-445f-a310-87866ba35bf2" />
-
 **Defensive Security Middleware for LLM Applications**
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
