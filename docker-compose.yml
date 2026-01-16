@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # Redis - Message queue and cache
+  redis:
+    image: redis:7-alpine
+    container_name: tenet-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tenet-network
+    restart: unless-stopped
+
+  # PostgreSQL - Metadata storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: tenet-postgres
+    environment:
+      POSTGRES_DB: tenet_ai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tenet-network
+    restart: unless-stopped
+
+  # MinIO - S3-compatible object storage
+  minio:
+    image: minio/minio:latest
+    container_name: tenet-minio
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    ports:
+      - "9000:9000"
+      - "9001:9001"  # Console
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - tenet-network
+    restart: unless-stopped
+
+  # Ingest Service
+  ingest:
+    build:
+      context: .
+      dockerfile: services/ingest/Dockerfile
+    container_name: tenet-ingest
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_KEY=${API_KEY:-tenet-dev-key-change-in-production}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/ingest:/app
+      - ./data:/data
+    networks:
+      - tenet-network
+    restart: unless-stopped
+
+  # Analyzer Service
+  analyzer:
+    build:
+      context: .
+      dockerfile: services/analyzer/Dockerfile
+    container_name: tenet-analyzer
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - API_HOST=0.0.0.0
+      - API_PORT=8100
+      - API_KEY=${API_KEY:-tenet-dev-key-change-in-production}
+      - MODEL_PATH=/app/models/trained
+      - PHISHING_THRESHOLD=0.85
+      - PROMPT_INJECTION_THRESHOLD=0.75
+    ports:
+      - "8100:8100"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/analyzer:/app
+      - ./models:/app/models
+      - ./data:/data
+    networks:
+      - tenet-network
+    restart: unless-stopped
+
+networks:
+  tenet-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  postgres_data:
+  minio_data:
