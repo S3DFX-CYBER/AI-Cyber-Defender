@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+        
+    - name: Run unit tests
+      run: |
+        pytest tests/unit/ -v
+        
+    - name: Run training script check
+      run: |
+        python scripts/train_model.py --test-only
+        
+    - name: Run integration tests
+      env:
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+      run: |
+        # Only run if services can be mocked or local redis is enough
+        # Current test_e2e requires full services, so might fail without them
+        # pytest tests/integration/test_e2e.py -v
+        echo "Skipping E2E in CI for now - requires analyzer/ingest containers"
