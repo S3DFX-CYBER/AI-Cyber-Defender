@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Shield,
   Activity,
-  AlertTriangle,
   CheckCircle,
   XCircle,
-  Terminal,
   BarChart3,
-  Settings,
   RefreshCw,
   Search,
   Lock,
@@ -37,7 +34,7 @@ interface SecurityEvent {
   model: string;
   prompt: string;
   verdict: 'benign' | 'suspicious' | 'malicious';
-  risk_score: float;
+  risk_score: number;
   blocked: boolean;
 }
 
@@ -106,8 +103,12 @@ export default function App() {
         axios.get(`http://localhost:8100/health`)
       ]);
 
-      if (eventsRes.status === 'fulfilled') setEvents(eventsRes.value.data.events);
-      if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
+      if (eventsRes.status === 'fulfilled') {
+        setEvents(eventsRes.value.data.events || []);
+      }
+      if (statsRes.status === 'fulfilled') {
+        setStats(statsRes.value.data || stats);
+      }
 
       setHealth({
         ingest: ingestHealth.status === 'fulfilled' && ingestHealth.value.status === 200,
@@ -194,7 +195,7 @@ export default function App() {
                       paddingAngle={5}
                       dataKey="value"
                     >
-                      {chartData.map((entry, index) => (
+                      {chartData.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -244,7 +245,7 @@ export default function App() {
                     </td>
                     <td>{new Date(event.timestamp).toLocaleTimeString()}</td>
                     <td>{event.source_id}</td>
-                    <td className="prompt-cell">"{event.prompt.substring(0, 60)}..."</td>
+                    <td className="prompt-cell">"{event.prompt?.substring(0, 60)}..."</td>
                     <td>{event.blocked ? '🚫 Blocked' : '✅ Allowed'}</td>
                   </tr>
                 ))}
@@ -290,7 +291,7 @@ export default function App() {
       <style>{`
         .app-container { display: flex; height: 100vh; animation: fadeIn 0.4s ease-out; }
         .sidebar { width: 260px; background: var(--card-bg); border-right: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; gap: 32px; }
-        .logo { display: flex; alignItems: center; gap: 12px; font-size: 1.25rem; font-weight: 700; color: var(--accent-primary); }
+        .logo { display: flex; align-items: center; gap: 12px; font-size: 1.25rem; font-weight: 700; color: var(--accent-primary); }
         nav { display: flex; flex-direction: column; gap: 8px; flex: 1; }
         nav button { display: flex; align-items: center; gap: 12px; padding: 12px; width: 100%; border-radius: 8px; color: var(--text-secondary); transition: all 0.2s; text-align: left; }
         nav button:hover { background: #1f1f23; color: var(--text-primary); }
