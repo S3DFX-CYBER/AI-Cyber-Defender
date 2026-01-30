@@ -6,7 +6,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Security: Active](https://img.shields.io/badge/security-active-brightgreen.svg)]()
-
+![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![Contributors](https://img.shields.io/github/contributors/S3DFX-CYBER/AI-Cyber-Defender)
 > **TENET AI is a security plugin layer for LLM-powered applications that detects, blocks, and reports adversarial prompts, jailbreaks, and abuse patterns with SOC-style visibility.**
 
 ---
