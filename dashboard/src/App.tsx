@@ -105,17 +105,19 @@ export default function App() {
 
       if (eventsRes.status === 'fulfilled') {
         setEvents(eventsRes.value.data.events || []);
+      } else {
+        console.error('Failed to fetch events:', eventsRes.reason);
       }
       if (statsRes.status === 'fulfilled') {
         setStats(statsRes.value.data || stats);
+      } else {
+        console.error('Failed to fetch stats:', statsRes.reason);
       }
 
       setHealth({
         ingest: ingestHealth.status === 'fulfilled' && ingestHealth.value.status === 200,
         analyzer: analyzerHealth.status === 'fulfilled' && analyzerHealth.value.status === 200
       });
-    } catch (error) {
-      console.error('Failed to fetch real-time data:', error);
     } finally {
       setLoading(false);
     }
