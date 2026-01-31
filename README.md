@@ -433,8 +433,8 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 - **Issues**: [GitHub Issues](https://github.com/yourusername/tenet-ai/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/tenet-ai/discussions)
-- **Email**: security@tenet-ai.dev
-- **Twitter**: [@TenetAISecurity](https://twitter.com/TenetAISecurity)
+- **Email**: saviodsouza8a@gmail.com
+
 
 ---
 
