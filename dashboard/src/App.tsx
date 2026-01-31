@@ -229,7 +229,11 @@ const avgRiskScore = events.length > 0
           <div className="events-list">
             <div className="filter-bar">
               <Search size={18} />
-              <input type="text" placeholder="Search events, prompts, or sources..." />
+              <input
+                type="text"
+                placeholder="Search events, prompts, or sources..."
+                aria-label="Search events, prompts, or sources"
+              />
             </div>
             <table>
               <thead>
