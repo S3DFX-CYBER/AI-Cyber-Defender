@@ -77,7 +77,7 @@ const MOCK_EVENTS: SecurityEvent[] = [
 const COLORS = ['#ef4444', '#f59e0b', '#10b981'];
 
 const API_BASE = 'http://localhost:8000';
-const API_KEY = 'tenet-dev-key-change-in-production';
+const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'events' | 'system'>('dashboard');
