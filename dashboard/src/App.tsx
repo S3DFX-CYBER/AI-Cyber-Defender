@@ -179,9 +179,13 @@ export default function App() {
                 <h3>Threats Blocked</h3>
                 <div className="value">{stats.blocked_count}</div>
               </div>
+const avgRiskScore = events.length > 0
+  ? (events.reduce((sum, e) => sum + e.risk_score, 0) / events.length).toFixed(2)
+  : '0.00';
+
               <div className="stat-card warning">
                 <h3>Average Risk Score</h3>
-                <div className="value">0.42</div>
+                <div className="value">{avgRiskScore}</div>
               </div>
             </div>
 
