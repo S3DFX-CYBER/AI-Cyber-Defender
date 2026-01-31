@@ -10,8 +10,7 @@ TENET AI is a security tool, so we take security issues very seriously. We appre
 
 Instead, report them via:
 
-1. **Email**: security@tenet-ai.dev
-2. **Private Security Advisory**: Use GitHub's [private security advisory](https://github.com/yourusername/tenet-ai/security/advisories/new) feature
+1. **Private Security Advisory**: Use GitHub's [private security advisory](https://github.com/yourusername/tenet-ai/security/advisories/new) feature
 
 ### What to Include
 
@@ -277,7 +276,7 @@ Before deploying to production:
 
 ## 📞 Contact
 
-- **Security Team**: security@tenet-ai.dev
+- **Security Team**: saviodsouza8a@gmail.com
 - **PGP Key**: [Available on request]
 - **Security Advisory Page**: https://github.com/yourusername/tenet-ai/security/advisories
 
@@ -285,13 +284,6 @@ Before deploying to production:
 
 We appreciate the security research community's efforts in keeping TENET AI secure.
 
-### Security Hall of Fame
-
-Contributors who have helped improve our security:
-
-- [Your name could be here!]
-
----
 
 **Last Updated**: January 2026  
 **Policy Version**: 1.0
