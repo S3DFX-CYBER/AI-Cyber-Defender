@@ -251,7 +251,9 @@ const avgRiskScore = events.length > 0
                     </td>
                     <td>{new Date(event.timestamp).toLocaleTimeString()}</td>
                     <td>{event.source_id}</td>
-                    <td className="prompt-cell">"{event.prompt?.substring(0, 60)}..."</td>
+                    <td className="prompt-cell">
+                      "{event.prompt ? (event.prompt.length > 60 ? `${event.prompt.substring(0, 60)}...` : event.prompt) : 'N/A'}"
+                    </td>
                     <td>{event.blocked ? '🚫 Blocked' : '✅ Allowed'}</td>
                   </tr>
                 ))}
