@@ -109,7 +109,7 @@ export default function App() {
         console.error('Failed to fetch events:', eventsRes.reason);
       }
       if (statsRes.status === 'fulfilled') {
-        setStats(statsRes.value.data || stats);
+        setStats(prev => statsRes.value.data || prev);
       } else {
         console.error('Failed to fetch stats:', statsRes.reason);
       }
