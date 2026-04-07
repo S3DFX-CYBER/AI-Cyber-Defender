@@ -1,6 +1,28 @@
 {
-  "trained_at": "2026-01-26T16:33:22.760284",
+  "schema_version": "1.0.0",
+  "trained_at": "2026-01-26T16:33:22.760284Z",
   "accuracy": 1.0,
   "model_type": "LogisticRegression",
-  "version": "0.1.0"
+  "model_family": "sklearn_text_classification",
+  "task": "adversarial_prompt_detection",
+  "label_mapping": {
+    "0": "benign",
+    "1": "malicious"
+  },
+  "feature_extractor": {
+    "type": "TfidfVectorizer",
+    "ngram_range": [1, 3]
+  },
+  "training_data": {
+    "path": "data/adversarial_prompts.json",
+    "format": "json",
+    "sample_count": 120
+  },
+  "artifact_files": [
+    "prompt_detector.joblib",
+    "vectorizer.joblib",
+    "metadata.json",
+    "checksums.json"
+  ],
+  "version": "0.2.0"
 }

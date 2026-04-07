@@ -10,6 +10,7 @@ This module provides ML-based detection for:
 import os
 import json
 import logging
+import hashlib
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 from dataclasses import dataclass
@@ -27,6 +28,18 @@ logger = logging.getLogger(__name__)
 
 # Default paths
 DEFAULT_MODEL_PATH = os.getenv("MODEL_PATH", "./models/trained")
+REQUIRED_METADATA_FIELDS = [
+    "schema_version",
+    "trained_at",
+    "accuracy",
+    "model_type",
+    "model_family",
+    "task",
+    "label_mapping",
+    "feature_extractor",
+    "artifact_files",
+    "version",
+]
 
 
 class ThreatType(Enum):
@@ -149,8 +162,25 @@ class PhishingDetector:
         try:
             model_file = Path(self.model_path) / "prompt_detector.joblib"
             vectorizer_file = Path(self.model_path) / "vectorizer.joblib"
+            metadata_file = Path(self.model_path) / "metadata.json"
+            checksums_file = Path(self.model_path) / "checksums.json"
             
             if model_file.exists() and vectorizer_file.exists():
+                if not metadata_file.exists():
+                    logger.error("Model metadata is required but missing at %s", metadata_file)
+                    return False
+
+                metadata = self._load_metadata(metadata_file)
+                if not metadata:
+                    return False
+
+                if not checksums_file.exists():
+                    logger.error("Checksum manifest is required but missing at %s", checksums_file)
+                    return False
+
+                if not self._verify_checksums(checksums_file):
+                    return False
+
                 self.model = joblib.load(model_file)
                 self.vectorizer = joblib.load(vectorizer_file)
                 self.model_loaded = True
@@ -162,6 +192,60 @@ class PhishingDetector:
         except Exception as e:
             logger.error(f"Failed to load ML model: {e}")
             return False
+
+    def _load_metadata(self, metadata_file: Path) -> Optional[Dict[str, Any]]:
+        """Load and validate model metadata."""
+        with open(metadata_file, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+
+        missing = [field for field in REQUIRED_METADATA_FIELDS if field not in metadata]
+        if missing:
+            logger.error("Model metadata missing required fields: %s", ", ".join(missing))
+            return None
+
+        return metadata
+
+    def _verify_checksums(self, checksums_file: Path) -> bool:
+        """Verify model artifact checksums when a checksum manifest is present."""
+        with open(checksums_file, "r", encoding="utf-8") as f:
+            checksums = json.load(f)
+
+        artifacts = checksums.get("artifacts", {})
+        if not artifacts:
+            logger.error("Checksum manifest exists but contains no artifacts.")
+            return False
+
+        for filename, expected_hash in artifacts.items():
+            artifact_path = self._resolve_artifact_path(filename)
+            if artifact_path is None:
+                logger.error("Checksum manifest contains invalid artifact path: %s", filename)
+                return False
+
+            if not artifact_path.exists():
+                logger.error("Artifact referenced in checksum manifest is missing: %s", filename)
+                return False
+
+            digest = self._sha256(artifact_path)
+            if digest != expected_hash:
+                logger.error("Checksum mismatch for %s", filename)
+                return False
+
+        logger.info("Model artifact checksum verification passed.")
+        return True
+
+    def _resolve_artifact_path(self, filename: str) -> Optional[Path]:
+        """Resolve artifact path and ensure it cannot escape model_path."""
+        base_path = Path(self.model_path).resolve()
+        candidate = (Path(self.model_path) / filename).resolve()
+        try:
+            candidate.relative_to(base_path)
+        except ValueError:
+            return None
+        return candidate
+
+    def _sha256(self, path: Path) -> str:
+        """Compute SHA-256 hash for an artifact file."""
+        return hashlib.sha256(path.read_bytes()).hexdigest()
     
     def detect(self, prompt: str, context: Optional[str] = None) -> DetectionResult:
         """

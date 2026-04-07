@@ -1,0 +1,9 @@
+{
+  "algorithm": "sha256",
+  "generated_at": "2026-04-07T18:09:54.256201Z",
+  "artifacts": {
+    "prompt_detector.joblib": "a496cbdb38443a49dab34b9c006cc68e84942952b326f9aa23ed8a7c78697f88",
+    "vectorizer.joblib": "7f7cff4c58fa7eafc8a94288a9ba7d215ff2dbef8750b0f21c4e0db9573fd94e",
+    "metadata.json": "e213fb0ca64b8b64acc3ada6ff3e00200aa62311df9f5a16a3d70fd9a9d4ff3f"
+  }
+}

@@ -7,6 +7,7 @@ import os
 import json
 import logging
 import argparse
+import hashlib
 from pathlib import Path
 from datetime import datetime
 
@@ -28,6 +29,21 @@ logger = logging.getLogger(__name__)
 # Default paths
 DEFAULT_DATA_PATH = "./data/adversarial_prompts.json"
 DEFAULT_MODEL_PATH = "./models/trained"
+
+
+def extract_feature_extractor_metadata(vectorizer) -> dict:
+    """Extract reproducibility metadata from a fitted feature extractor."""
+    metadata = {"type": type(vectorizer).__name__}
+
+    if isinstance(vectorizer, TfidfVectorizer):
+        metadata.update({
+            "ngram_range": list(vectorizer.ngram_range),
+            "max_features": vectorizer.max_features,
+            "min_df": vectorizer.min_df,
+            "max_df": vectorizer.max_df,
+            "stop_words": vectorizer.stop_words,
+        })
+    return metadata
 
 
 def load_dataset(data_path: str) -> tuple[list, list]:
@@ -283,15 +299,40 @@ def save_model(model, vectorizer, model_path: str, accuracy: float):
     
     # Save metadata
     metadata = {
-        "trained_at": datetime.utcnow().isoformat(),
+        "schema_version": "1.0.0",
+        "trained_at": datetime.utcnow().isoformat() + "Z",
         "accuracy": accuracy,
         "model_type": type(model).__name__,
-        "version": "0.1.0"
+        "model_family": "sklearn_text_classification",
+        "task": "adversarial_prompt_detection",
+        "label_mapping": {"0": "benign", "1": "malicious"},
+        "feature_extractor": extract_feature_extractor_metadata(vectorizer),
+        "artifact_files": [
+            "prompt_detector.joblib",
+            "vectorizer.joblib",
+            "metadata.json",
+            "checksums.json"
+        ],
+        "version": "0.2.0"
     }
     metadata_file = Path(model_path) / "metadata.json"
     with open(metadata_file, 'w') as f:
         json.dump(metadata, f, indent=2)
     logger.info(f"Metadata saved to {metadata_file}")
+
+    checksums = {
+        "algorithm": "sha256",
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "artifacts": {
+            "prompt_detector.joblib": hashlib.sha256(model_file.read_bytes()).hexdigest(),
+            "vectorizer.joblib": hashlib.sha256(vectorizer_file.read_bytes()).hexdigest(),
+            "metadata.json": hashlib.sha256(metadata_file.read_bytes()).hexdigest()
+        }
+    }
+    checksums_file = Path(model_path) / "checksums.json"
+    with open(checksums_file, "w", encoding="utf-8") as f:
+        json.dump(checksums, f, indent=2)
+    logger.info(f"Checksums saved to {checksums_file}")
 
 
 def test_model(model_path: str, prompts: list = None):

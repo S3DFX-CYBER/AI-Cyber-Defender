@@ -141,6 +141,7 @@ class TestModelSaving:
             assert (Path(tmpdir) / "prompt_detector.joblib").exists()
             assert (Path(tmpdir) / "vectorizer.joblib").exists()
             assert (Path(tmpdir) / "metadata.json").exists()
+            assert (Path(tmpdir) / "checksums.json").exists()
             
             # Check metadata content
             with open(Path(tmpdir) / "metadata.json") as f:
@@ -149,6 +150,12 @@ class TestModelSaving:
             assert metadata["accuracy"] == 0.95
             assert "trained_at" in metadata
             assert "version" in metadata
+            assert metadata["schema_version"] == "1.0.0"
+            assert metadata["model_family"] == "sklearn_text_classification"
+            assert metadata["task"] == "adversarial_prompt_detection"
+            assert "label_mapping" in metadata
+            assert metadata["feature_extractor"]["type"] == "dict"
+            assert "ngram_range" not in metadata["feature_extractor"]
 
 
 class TestModelTesting:
@@ -198,6 +205,7 @@ class TestIntegration:
             assert (model_path / "prompt_detector.joblib").exists()
             assert (model_path / "vectorizer.joblib").exists()
             assert (model_path / "metadata.json").exists()
+            assert (model_path / "checksums.json").exists()
 
 
 if __name__ == "__main__":
