@@ -6,6 +6,7 @@ import os
 import json
 import asyncio
 import sys
+import time
 from datetime import datetime, timezone
 from typing import Annotated, Optional, List, Dict, Any
 from pathlib import Path
@@ -25,6 +26,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from services.utils.logging_config import setup_logging
 from services.security import SecurityManager
 from services.analyzer.detection_engine import DetectionEngine
+from services.analyzer.reliability import CircuitBreaker
+from services.analyzer.siem_connectors import SIEMDispatcher
 logger = setup_logging(__name__)
 
 # Environment configuration
@@ -61,6 +64,12 @@ vectorizer = None
 stop_event: Optional[asyncio.Event] = None
 background_task = None
 engine: Optional[DetectionEngine] = None
+siem_dispatcher = SIEMDispatcher()
+circuit_breaker = CircuitBreaker(
+    failure_threshold=int(os.getenv("CB_FAILURE_THRESHOLD", "5")),
+    reset_timeout_seconds=float(os.getenv("CB_RESET_TIMEOUT_SECONDS", "30")),
+)
+LATENCY_SLA_MS = float(os.getenv("LATENCY_SLA_MS", "20"))
 security = SecurityManager(
     service_name="analyzer",
     redis_call=lambda coro: coro,
@@ -107,6 +116,40 @@ class FeedbackRequest(BaseModel):
     predicted_verdict: str = Field(..., min_length=3, max_length=32)
     analyst_verdict: str = Field(..., min_length=3, max_length=32)
     notes: Optional[str] = Field(None, max_length=4000)
+
+
+try:
+    from prometheus_client import Counter, Histogram, generate_latest
+except ImportError:  # pragma: no cover - optional dependency in some runtime modes
+    Counter = None
+    Histogram = None
+    generate_latest = None
+
+
+ANALYZE_REQUESTS = (
+    Counter(
+        "tenet_analyzer_requests_total",
+        "Total analyzer requests",
+        ["verdict"],
+    )
+    if Counter
+    else None
+)
+ANALYZE_LATENCY = (
+    Histogram(
+        "tenet_analyzer_latency_seconds",
+        "Analyzer latency in seconds",
+        buckets=(0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.5, 1.0),
+    )
+    if Histogram
+    else None
+)
+
+try:
+    from opentelemetry import trace
+    tracer = trace.get_tracer("tenet.analyzer")
+except Exception:  # pragma: no cover
+    tracer = None
 
 
 @app.on_event("startup")
@@ -202,6 +245,14 @@ async def health_check():
     )
 
 
+@app.get("/metrics")
+async def metrics():
+    """Prometheus scrape endpoint."""
+    if not generate_latest:
+        raise HTTPException(status_code=503, detail="prometheus-client not installed")
+    return generate_latest()
+
+
 @app.post(
     "/v1/analyze",
     response_model=AnalysisResponse,
@@ -221,13 +272,22 @@ async def analyze_prompt(
     """
     auth = await security.require_auth(x_api_key, required_permission="analyze")
     prompt = request.prompt
-    result = run_analysis(
-        prompt=prompt,
-        organization_id=request.organization_id,
-        session_id=request.session_id,
-        response_text=request.response_text,
-        agent_trace=request.agent_trace,
-    )
+    started = time.perf_counter()
+    with tracer.start_as_current_span("analyzer.analyze_prompt") if tracer else _null_context():
+        result = run_analysis(
+            prompt=prompt,
+            organization_id=request.organization_id,
+            session_id=request.session_id,
+            response_text=request.response_text,
+            agent_trace=request.agent_trace,
+        )
+    elapsed = time.perf_counter() - started
+    if ANALYZE_LATENCY:
+        ANALYZE_LATENCY.observe(elapsed)
+    if ANALYZE_REQUESTS:
+        ANALYZE_REQUESTS.labels(verdict=result.verdict).inc()
+    result.details["latency_ms"] = round(elapsed * 1000, 3)
+    result.details["heuristic_sla_met"] = result.details["latency_ms"] <= LATENCY_SLA_MS
     security.audit(
         action="analyze_prompt",
         result=result.verdict,
@@ -269,22 +329,43 @@ def run_analysis(
     agent_trace: Optional[List[Dict[str, Any]]] = None,
 ) -> AnalysisResponse:
     """Run full analysis on a prompt."""
-    if engine:
-        result = engine.analyze(
-            prompt=prompt,
-            organization_id=organization_id,
-            session_id=session_id,
-            response_text=response_text,
-            agent_trace=agent_trace,
-            sklearn_fallback=_ml_score_for_engine,
-        )
+    if circuit_breaker.is_open:
         return AnalysisResponse(
-            risk_score=result.risk_score,
-            verdict=result.verdict,
-            threat_type=result.threat_type,
-            confidence=result.confidence,
-            details=result.details,
+            risk_score=0.0,
+            verdict="benign",
+            threat_type=None,
+            confidence=0.5,
+            details={"method": "fallback_allow", "reason": "circuit_breaker_open"},
         )
+
+    if engine:
+        try:
+            result = engine.analyze(
+                prompt=prompt,
+                organization_id=organization_id,
+                session_id=session_id,
+                response_text=response_text,
+                agent_trace=agent_trace,
+                sklearn_fallback=_ml_score_for_engine,
+            )
+            circuit_breaker.record_success()
+            return AnalysisResponse(
+                risk_score=result.risk_score,
+                verdict=result.verdict,
+                threat_type=result.threat_type,
+                confidence=result.confidence,
+                details=result.details,
+            )
+        except Exception:
+            circuit_breaker.record_failure()
+            logger.exception("Detection engine failed; returning fallback allow")
+            return AnalysisResponse(
+                risk_score=0.0,
+                verdict="benign",
+                threat_type=None,
+                confidence=0.4,
+                details={"method": "fallback_allow", "reason": "engine_error"},
+            )
 
     # Heuristic analysis
     heuristic_result = heuristic_analysis(prompt)
@@ -480,6 +561,7 @@ async def _update_and_store_event(event: dict, event_id: str, result: AnalysisRe
     if result.verdict == "malicious":
         await redis_client.lpush("tenet:alerts", json.dumps(event))
         logger.warning(f"Alert: Malicious event detected - {event_id}")
+        await siem_dispatcher.publish(event)
 
 
 async def _process_single_event(event_json: str):
@@ -563,6 +645,16 @@ async def process_event_queue():
         except Exception:
             logger.exception("Queue processing error")
             await _wait_with_timeout(5.0)
+
+
+class _null_context:
+    """Simple no-op context manager for optional instrumentation."""
+
+    def __enter__(self):
+        return None
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
 
 
 if __name__ == "__main__":

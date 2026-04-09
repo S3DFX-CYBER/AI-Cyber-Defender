@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 import requests
+try:
+    from opentelemetry import trace
+    _tracer = trace.get_tracer("tenet.plugin")
+except Exception:  # pragma: no cover
+    _tracer = None
 
 
 class TenetPluginError(RuntimeError):
@@ -109,12 +114,13 @@ class TenetSecurityPlugin:
         source_type: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Guard a single LLM call and run it only when allowed."""
-        analysis = self.inspect_prompt(
-            prompt=prompt,
-            model=model,
-            source_id=source_id,
-            source_type=source_type,
-        )
+        with _tracer.start_as_current_span("tenet.secure_call") if _tracer else _NullContext():
+            analysis = self.inspect_prompt(
+                prompt=prompt,
+                model=model,
+                source_id=source_id,
+                source_type=source_type,
+            )
 
         if analysis.blocked:
             return {
@@ -160,3 +166,45 @@ class TenetSecurityPlugin:
             content = message.get("content", "")
             parts.append(f"[{role}] {content}")
         return "\n".join(parts)
+
+
+class LangChainTenetMiddleware:
+    """One-import drop-in middleware for LangChain-compatible call sites."""
+
+    def __init__(self, plugin: TenetSecurityPlugin, model: str):
+        self.plugin = plugin
+        self.model = model
+
+    def invoke(self, prompt: str, llm_callable: Callable[..., Any], **llm_kwargs):
+        return self.plugin.secure_call(
+            prompt=prompt,
+            model=self.model,
+            llm_callable=llm_callable,
+            llm_kwargs=llm_kwargs,
+            source_type="langchain",
+        )
+
+
+class LlamaIndexTenetMiddleware:
+    """One-import drop-in middleware for LlamaIndex-compatible call sites."""
+
+    def __init__(self, plugin: TenetSecurityPlugin, model: str):
+        self.plugin = plugin
+        self.model = model
+
+    def query(self, query_text: str, llm_callable: Callable[..., Any], **llm_kwargs):
+        return self.plugin.secure_call(
+            prompt=query_text,
+            model=self.model,
+            llm_callable=llm_callable,
+            llm_kwargs=llm_kwargs,
+            source_type="llamaindex",
+        )
+
+
+class _NullContext:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, exc_type, exc, tb):
+        return False

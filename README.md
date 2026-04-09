@@ -230,9 +230,38 @@ else:
     )
 ```
 
+#### Option C: One-Import Middleware (LangChain / LlamaIndex)
+
+```python
+from tenet_plugin import (
+    TenetSecurityPlugin,
+    LangChainTenetMiddleware,
+    LlamaIndexTenetMiddleware,
+)
+
+plugin = TenetSecurityPlugin(api_url="http://localhost:8000", api_key="your-api-key")
+
+langchain_guard = LangChainTenetMiddleware(plugin=plugin, model="gpt-4.1")
+llamaindex_guard = LlamaIndexTenetMiddleware(plugin=plugin, model="gpt-4.1")
+```
+
 ---
 
 ## 📊 Detection Capabilities
+
+### Tier 3 Reliability & Trust Signal
+
+- Prometheus metrics endpoint at `GET /metrics` (request counters + latency histogram).
+- Grafana + Prometheus stack included in `docker-compose.yml`.
+- Alert rules for p99 latency over 20ms and malicious-event spikes.
+- Graceful degradation with circuit breaker + fallback-allow mode for detector failures.
+- Latency SLA smoke test in `tests/integration/test_latency_sla.py` targeting heuristic p99 < 20ms.
+
+### Tier 4 Integrations & Adoption
+
+- LangChain and LlamaIndex one-import middleware in `tenet_plugin`.
+- SIEM connectors for Splunk HEC, Microsoft Sentinel, and Elastic ingestion endpoints.
+- OpenTelemetry spans in analyzer and plugin flows for existing APM stacks.
 
 ### Prompt Injection Detection
 

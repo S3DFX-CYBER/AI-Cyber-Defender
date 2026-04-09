@@ -1,0 +1,17 @@
+groups:
+  - name: tenet-analyzer-alerts
+    rules:
+      - alert: AnalyzerHighLatencyP99
+        expr: histogram_quantile(0.99, sum(rate(tenet_analyzer_latency_seconds_bucket[5m])) by (le)) > 0.02
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Analyzer p99 latency above 20ms
+      - alert: AnalyzerMaliciousSpike
+        expr: sum(rate(tenet_analyzer_requests_total{verdict="malicious"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: High malicious request rate detected
