@@ -32,6 +32,7 @@ class DetectionEngine:
     def __init__(self, redis_client=None):
         self.redis_client = redis_client
         self.policy = self._load_policy()
+        self.threat_intel = self._load_collective_threat_intel()
         self._session_cache: Dict[str, Dict[str, Any]] = {}
         self._backend = os.getenv("MODEL_BACKEND", "bert").lower()
         self._transformer_model = None
@@ -64,6 +65,19 @@ class DetectionEngine:
             )
             self._transformer_model = None
 
+    def _load_collective_threat_intel(self) -> Dict[str, Any]:
+        intel_path = Path(os.getenv("THREAT_INTEL_PATH", "./data/threat_intel/community_patterns.json"))
+        if not intel_path.exists():
+            return {"patterns": []}
+        try:
+            with intel_path.open("r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+            if isinstance(payload, dict):
+                return payload
+        except Exception:
+            logger.exception("Failed to load threat intel feed at %s", intel_path)
+        return {"patterns": []}
+
     def _merged_policy(self, organization_id: Optional[str]) -> Dict[str, Any]:
         merged = dict(self.policy)
         org_overrides = (self.policy.get("organizations") or {}).get(organization_id or "", {})
@@ -73,6 +87,29 @@ class DetectionEngine:
             else:
                 merged[key] = value
         return merged
+
+    def _collective_intel_score(self, prompt: str) -> Dict[str, Any]:
+        prompt_low = prompt.lower()
+        matches: List[str] = []
+        score = 0.0
+        for item in self.threat_intel.get("patterns", []):
+            pattern = str(item.get("pattern", "")).lower()
+            if pattern and pattern in prompt_low:
+                matches.append(pattern)
+                score = max(score, float(item.get("score", 0.65)))
+        return {"score": score, "matches": matches}
+
+    def _owasp_layer(self, matched_patterns: List[str], policy: Dict[str, Any]) -> Dict[str, Any]:
+        mapping = policy.get("owasp_llm_top_10", {})
+        covered = []
+        for pattern in matched_patterns:
+            category = mapping.get(pattern)
+            if category:
+                covered.append(category)
+        covered = sorted(set(covered))
+        total_categories = max(1, len(set(mapping.values())))
+        coverage_score = round(len(covered) / total_categories, 4)
+        return {"covered_categories": covered, "coverage_score": coverage_score}
 
     def _score_patterns(self, text: str, patterns: Dict[str, float]) -> Dict[str, Any]:
         text_low = text.lower()
@@ -153,9 +190,11 @@ class DetectionEngine:
         rules = policy.get("rules", {})
 
         prompt_eval = self._score_patterns(prompt, rules.get("prompt_patterns", {}))
+        intel_eval = self._collective_intel_score(prompt)
         response_eval = self._score_response_leak(response_text, policy)
         chain_eval = self._score_agent_chain(agent_trace, policy)
         model_eval = self._model_score(prompt, sklearn_fallback=sklearn_fallback)
+        owasp_eval = self._owasp_layer(prompt_eval["matched"] + intel_eval["matches"], policy)
 
         key = self._session_key(organization_id, session_id)
         state = self._get_session_state(key)
@@ -175,6 +214,7 @@ class DetectionEngine:
         risk_score = max(
             prompt_eval["score"],
             model_eval["risk_score"],
+            intel_eval["score"],
             response_eval["score"],
             chain_eval["score"],
             session_score,
@@ -196,6 +236,7 @@ class DetectionEngine:
             "agent_chain": chain_eval["score"],
             "response": response_eval["score"],
             "model": model_eval["risk_score"],
+            "collective_intel": intel_eval["score"],
             "session": session_score,
         }
         threat_type = max(threat_signals, key=threat_signals.get)
@@ -214,6 +255,8 @@ class DetectionEngine:
                 "policy_version": policy.get("version", "unknown"),
                 "session_events": len(state.get("history", [])),
                 "threat_signals": threat_signals,
+                "collective_intel_matches": intel_eval["matches"],
+                "owasp_llm_top_10": owasp_eval,
             },
         )
 
@@ -237,3 +280,28 @@ class DetectionEngine:
         with target.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record) + "\n")
         return str(target)
+
+    def share_threat_pattern(
+        self,
+        *,
+        pattern: str,
+        score: float,
+        category: str,
+        source: str = "local",
+    ) -> Dict[str, Any]:
+        intel_path = Path(os.getenv("THREAT_INTEL_PATH", "./data/threat_intel/community_patterns.json"))
+        intel_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = self.threat_intel if isinstance(self.threat_intel, dict) else {"patterns": []}
+        payload.setdefault("patterns", [])
+        payload["patterns"].append(
+            {
+                "pattern": pattern,
+                "score": score,
+                "category": category,
+                "source": source,
+            }
+        )
+        with intel_path.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2)
+        self.threat_intel = payload
+        return payload

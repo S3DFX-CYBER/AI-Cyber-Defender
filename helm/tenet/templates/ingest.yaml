@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tenet-ingest
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: tenet-ingest }
+  template:
+    metadata:
+      labels: { app: tenet-ingest }
+    spec:
+      containers:
+        - name: ingest
+          image: {{ .Values.ingest.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+            - name: REDIS_HOST
+              value: tenet-redis
+            - name: REDIS_PORT
+              value: "{{ .Values.redis.servicePort }}"
+            - name: API_KEY
+              value: "{{ .Values.apiKey }}"
+          ports:
+            - containerPort: {{ .Values.ingest.servicePort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenet-ingest
+spec:
+  selector: { app: tenet-ingest }
+  ports:
+    - port: {{ .Values.ingest.servicePort }}
+      targetPort: {{ .Values.ingest.servicePort }}

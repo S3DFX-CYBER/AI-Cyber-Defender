@@ -118,6 +118,15 @@ class FeedbackRequest(BaseModel):
     notes: Optional[str] = Field(None, max_length=4000)
 
 
+class ThreatIntelShareRequest(BaseModel):
+    """Request payload for community threat intel sharing."""
+
+    pattern: str = Field(..., min_length=3, max_length=500)
+    score: float = Field(0.7, ge=0.0, le=1.0)
+    category: str = Field(..., min_length=3, max_length=128)
+    source: str = Field("local", min_length=2, max_length=128)
+
+
 try:
     from prometheus_client import Counter, Histogram, generate_latest
 except ImportError:  # pragma: no cover - optional dependency in some runtime modes
@@ -319,6 +328,33 @@ async def submit_feedback(
         metadata={"feedback_file": feedback_file},
     )
     return {"status": "accepted", "feedback_file": feedback_file}
+
+
+@app.get("/v1/threat-intel/feed")
+async def get_threat_intel_feed(x_api_key: Annotated[str, Header(...)]):
+    """Return currently loaded collective threat intel feed."""
+    await security.require_auth(x_api_key, required_permission="analyze")
+    if not engine:
+        raise HTTPException(status_code=503, detail="Detection engine not initialized")
+    return engine.threat_intel
+
+
+@app.post("/v1/threat-intel/share")
+async def share_threat_intel(
+    request: ThreatIntelShareRequest,
+    x_api_key: Annotated[str, Header(...)],
+):
+    """Share a new attack pattern into the community threat intel feed."""
+    await security.require_auth(x_api_key, required_permission="analyze")
+    if not engine:
+        raise HTTPException(status_code=503, detail="Detection engine not initialized")
+    payload = engine.share_threat_pattern(
+        pattern=request.pattern,
+        score=request.score,
+        category=request.category,
+        source=request.source,
+    )
+    return {"status": "accepted", "patterns": len(payload.get("patterns", []))}
 
 
 def run_analysis(

@@ -263,6 +263,15 @@ llamaindex_guard = LlamaIndexTenetMiddleware(plugin=plugin, model="gpt-4.1")
 - SIEM connectors for Splunk HEC, Microsoft Sentinel, and Elastic ingestion endpoints.
 - OpenTelemetry spans in analyzer and plugin flows for existing APM stacks.
 
+### Tier 5 Differentiators & Moat
+
+- Collective threat intel endpoints:
+  - `GET /v1/threat-intel/feed`
+  - `POST /v1/threat-intel/share`
+- Community attack-pattern sharing persisted in local feed for air-gapped sync workflows.
+- OWASP LLM Top 10 mapping layer included in policy, with per-request coverage scoring in analyzer details.
+- Air-gapped on-prem deployment chart under `helm/tenet` using local image references and no cloud dependency requirement.
+
 ### Prompt Injection Detection
 
 ```python

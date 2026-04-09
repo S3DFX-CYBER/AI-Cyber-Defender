@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tenet-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: tenet-redis }
+  template:
+    metadata:
+      labels: { app: tenet-redis }
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.redis.servicePort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenet-redis
+spec:
+  selector: { app: tenet-redis }
+  ports:
+    - port: {{ .Values.redis.servicePort }}
+      targetPort: {{ .Values.redis.servicePort }}

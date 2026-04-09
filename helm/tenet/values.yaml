@@ -1,0 +1,15 @@
+imagePullPolicy: IfNotPresent
+
+ingest:
+  image: tenet-ingest:local
+  servicePort: 8000
+
+analyzer:
+  image: tenet-analyzer:local
+  servicePort: 8100
+
+redis:
+  image: redis:7-alpine
+  servicePort: 6379
+
+apiKey: tenet-dev-key-change-in-production
