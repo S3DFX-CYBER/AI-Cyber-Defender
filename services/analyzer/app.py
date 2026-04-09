@@ -7,7 +7,7 @@ import json
 import asyncio
 import sys
 from datetime import datetime, timezone
-from typing import Annotated, Optional
+from typing import Annotated, Optional, List, Dict, Any
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Header
@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from services.utils.logging_config import setup_logging
 from services.security import SecurityManager
+from services.analyzer.detection_engine import DetectionEngine
 logger = setup_logging(__name__)
 
 # Environment configuration
@@ -59,6 +60,7 @@ ml_model = None
 vectorizer = None
 stop_event: Optional[asyncio.Event] = None
 background_task = None
+engine: Optional[DetectionEngine] = None
 security = SecurityManager(
     service_name="analyzer",
     redis_call=lambda coro: coro,
@@ -71,6 +73,13 @@ class AnalysisRequest(BaseModel):
     """Request for prompt analysis."""
     prompt: str = Field(..., description="The prompt to analyze", min_length=1, max_length=10000)
     context: Optional[str] = Field(None, description="Additional context", max_length=5000)
+    session_id: Optional[str] = Field(None, description="Cross-turn session id for attack correlation", max_length=256)
+    organization_id: Optional[str] = Field(None, description="Organization id for policy overrides", max_length=256)
+    response_text: Optional[str] = Field(None, description="Optional model response for output scanning", max_length=10000)
+    agent_trace: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Optional agent/tool execution trace to monitor chain injection",
+    )
 
 
 class AnalysisResponse(BaseModel):
@@ -91,10 +100,19 @@ class HealthResponse(BaseModel):
     redis_connected: bool
 
 
+class FeedbackRequest(BaseModel):
+    """Analyst feedback payload for FP/FN retraining loop."""
+
+    prompt: str = Field(..., min_length=1, max_length=10000)
+    predicted_verdict: str = Field(..., min_length=3, max_length=32)
+    analyst_verdict: str = Field(..., min_length=3, max_length=32)
+    notes: Optional[str] = Field(None, max_length=4000)
+
+
 @app.on_event("startup")
 async def startup():
     """Initialize connections and models on startup."""
-    global redis_client, ml_model, vectorizer, background_task, stop_event
+    global redis_client, ml_model, vectorizer, background_task, stop_event, engine
     
     # Connect to Redis
     try:
@@ -123,6 +141,8 @@ async def startup():
             logger.warning(f"ML models not found at {MODEL_PATH}")
     except Exception:
         logger.exception("Failed to load ML models")
+
+    engine = DetectionEngine(redis_client=redis_client)
     
     # Create stop event and start background processor
     stop_event = asyncio.Event()
@@ -201,7 +221,13 @@ async def analyze_prompt(
     """
     auth = await security.require_auth(x_api_key, required_permission="analyze")
     prompt = request.prompt
-    result = run_analysis(prompt)
+    result = run_analysis(
+        prompt=prompt,
+        organization_id=request.organization_id,
+        session_id=request.session_id,
+        response_text=request.response_text,
+        agent_trace=request.agent_trace,
+    )
     security.audit(
         action="analyze_prompt",
         result=result.verdict,
@@ -211,8 +237,55 @@ async def analyze_prompt(
     return result
 
 
-def run_analysis(prompt: str) -> AnalysisResponse:
+@app.post("/v1/feedback")
+async def submit_feedback(
+    request: FeedbackRequest,
+    x_api_key: Annotated[str, Header(...)],
+):
+    """Accept analyst FP/FN corrections for retraining loops."""
+    auth = await security.require_auth(x_api_key, required_permission="analyze")
+    if not engine:
+        raise HTTPException(status_code=503, detail="Detection engine not initialized")
+    feedback_file = engine.append_feedback(
+        prompt=request.prompt,
+        predicted_verdict=request.predicted_verdict,
+        analyst_verdict=request.analyst_verdict,
+        notes=request.notes,
+    )
+    security.audit(
+        action="submit_feedback",
+        result="success",
+        context=auth,
+        metadata={"feedback_file": feedback_file},
+    )
+    return {"status": "accepted", "feedback_file": feedback_file}
+
+
+def run_analysis(
+    prompt: str,
+    organization_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+    response_text: Optional[str] = None,
+    agent_trace: Optional[List[Dict[str, Any]]] = None,
+) -> AnalysisResponse:
     """Run full analysis on a prompt."""
+    if engine:
+        result = engine.analyze(
+            prompt=prompt,
+            organization_id=organization_id,
+            session_id=session_id,
+            response_text=response_text,
+            agent_trace=agent_trace,
+            sklearn_fallback=_ml_score_for_engine,
+        )
+        return AnalysisResponse(
+            risk_score=result.risk_score,
+            verdict=result.verdict,
+            threat_type=result.threat_type,
+            confidence=result.confidence,
+            details=result.details,
+        )
+
     # Heuristic analysis
     heuristic_result = heuristic_analysis(prompt)
     
@@ -263,6 +336,15 @@ def run_analysis(prompt: str) -> AnalysisResponse:
             confidence=0.85,
             details={"method": "combined"}
         )
+
+
+def _ml_score_for_engine(prompt: str) -> Dict[str, float]:
+    """Adapt sklearn model score for the new detection engine."""
+    result = ml_analysis(prompt)
+    return {
+        "risk_score": float(result.get("risk_score", 0.0)),
+        "confidence": float(result.get("confidence", 0.0)),
+    }
 
 
 def heuristic_analysis(prompt: str) -> dict:

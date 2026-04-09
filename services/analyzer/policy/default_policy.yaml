@@ -1,0 +1,39 @@
+version: "2.0"
+thresholds:
+  suspicious: 0.5
+  malicious: 0.8
+rules:
+  prompt_patterns:
+    ignore previous instructions: 0.95
+    ignore all previous: 0.95
+    disregard your instructions: 0.9
+    forget your system prompt: 0.9
+    show me your system prompt: 0.75
+    what are your instructions: 0.7
+    override your safety: 0.9
+    you are now dan: 0.95
+    no restrictions: 0.8
+    reveal your training: 0.75
+    data exfiltration: 0.9
+agentic_chain_monitor:
+  max_hops: 5
+  excessive_hops_score: 0.72
+  tool_injection_patterns:
+    tool override: 0.84
+    system prompt leak: 0.92
+    ignore policy: 0.87
+    developer_message: 0.75
+    function_call: 0.68
+response_scanning:
+  data_leak_patterns:
+    api_key: 0.95
+    private key: 0.99
+    ssn: 0.9
+    social security number: 0.92
+    credit card number: 0.88
+    aws_secret_access_key: 0.99
+organizations:
+  finance:
+    thresholds:
+      suspicious: 0.4
+      malicious: 0.7
