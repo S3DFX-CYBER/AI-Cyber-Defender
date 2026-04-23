@@ -1,6 +1,11 @@
 """Unit tests for framework-agnostic TENET plugin."""
 
-from tenet_plugin import TenetSecurityPlugin, TenetPluginError
+from tenet_plugin import (
+    LlamaIndexTenetMiddleware,
+    LangChainTenetMiddleware,
+    TenetPluginError,
+    TenetSecurityPlugin,
+)
 
 
 class DummyResponse:
@@ -107,4 +112,38 @@ def test_secure_messages_call_flattens_messages():
         llm_callable=lambda **kwargs: "ok",
     )
 
+    assert result["status"] == "success"
+
+
+def test_langchain_middleware_invoke():
+    session = DummySession(
+        response=DummyResponse(
+            {
+                "blocked": False,
+                "verdict": "benign",
+                "risk_score": 0.0,
+                "event_id": "evt_4",
+            }
+        )
+    )
+    plugin = TenetSecurityPlugin(session=session)
+    middleware = LangChainTenetMiddleware(plugin=plugin, model="gpt-4")
+    result = middleware.invoke("hello", llm_callable=lambda **kwargs: "ok")
+    assert result["status"] == "success"
+
+
+def test_llamaindex_middleware_query():
+    session = DummySession(
+        response=DummyResponse(
+            {
+                "blocked": False,
+                "verdict": "benign",
+                "risk_score": 0.0,
+                "event_id": "evt_5",
+            }
+        )
+    )
+    plugin = TenetSecurityPlugin(session=session)
+    middleware = LlamaIndexTenetMiddleware(plugin=plugin, model="gpt-4")
+    result = middleware.query("what is tenet?", llm_callable=lambda **kwargs: "ok")
     assert result["status"] == "success"

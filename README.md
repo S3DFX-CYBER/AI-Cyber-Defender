@@ -230,9 +230,49 @@ else:
     )
 ```
 
+#### Option C: One-Import Middleware (LangChain / LlamaIndex)
+
+```python
+from tenet_plugin import (
+    TenetSecurityPlugin,
+    LangChainTenetMiddleware,
+    LlamaIndexTenetMiddleware,
+)
+
+plugin = TenetSecurityPlugin(api_url="http://localhost:8000", api_key="your-api-key")
+
+langchain_guard = LangChainTenetMiddleware(plugin=plugin, model="gpt-4.1")
+llamaindex_guard = LlamaIndexTenetMiddleware(plugin=plugin, model="gpt-4.1")
+```
+
 ---
 
 ## 📊 Detection Capabilities
+
+### Tier 3 Reliability & Trust Signal
+
+- Prometheus metrics endpoint at `GET /metrics` (request counters + latency histogram).
+- Grafana + Prometheus stack included in `docker-compose.yml`.
+- Alert rules for p99 latency over 20ms and malicious-event spikes.
+- Graceful degradation with circuit breaker + fallback-allow mode for detector failures.
+- Latency SLA smoke test in `tests/integration/test_latency_sla.py` targeting heuristic p99 < 20ms.
+
+### Tier 4 Integrations & Adoption
+
+- LangChain and LlamaIndex one-import middleware in `tenet_plugin`.
+- SIEM connectors for Splunk HEC, Microsoft Sentinel, and Elastic ingestion endpoints.
+- SIEM payloads are redacted by default (`INCLUDE_SENSITIVE_SIEM_FIELDS=false`) to reduce data-leak risk.
+- OpenTelemetry spans in analyzer and plugin flows for existing APM stacks.
+
+### Tier 5 Differentiators & Moat
+
+- Collective threat intel endpoints:
+  - `GET /v1/threat-intel/feed`
+  - `POST /v1/threat-intel/share`
+- Community attack-pattern sharing persisted in local feed for air-gapped sync workflows.
+- OWASP LLM Top 10 mapping layer included in policy, with per-request coverage scoring in analyzer details.
+- Air-gapped on-prem deployment chart under `helm/tenet` using local image references and no cloud dependency requirement.
+- Helm chart requires explicitly setting `values.apiKey` (no insecure default secret).
 
 ### Prompt Injection Detection
 

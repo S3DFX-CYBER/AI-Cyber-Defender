@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tenet-analyzer
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: tenet-analyzer }
+  template:
+    metadata:
+      labels: { app: tenet-analyzer }
+    spec:
+      containers:
+        - name: analyzer
+          image: {{ .Values.analyzer.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+            - name: REDIS_HOST
+              value: tenet-redis
+            - name: REDIS_PORT
+              value: "{{ .Values.redis.servicePort }}"
+            - name: API_KEY
+              value: "{{ required \"values.apiKey is required\" .Values.apiKey }}"
+          ports:
+            - containerPort: {{ .Values.analyzer.servicePort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenet-analyzer
+spec:
+  selector: { app: tenet-analyzer }
+  ports:
+    - port: {{ .Values.analyzer.servicePort }}
+      targetPort: {{ .Values.analyzer.servicePort }}

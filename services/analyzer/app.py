@@ -6,8 +6,9 @@ import os
 import json
 import asyncio
 import sys
+import time
 from datetime import datetime, timezone
-from typing import Annotated, Optional
+from typing import Annotated, Optional, List, Dict, Any
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Header
@@ -24,6 +25,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from services.utils.logging_config import setup_logging
 from services.security import SecurityManager
+from services.analyzer.detection_engine import DetectionEngine
+from services.analyzer.reliability import CircuitBreaker
+from services.analyzer.siem_connectors import SIEMDispatcher
 logger = setup_logging(__name__)
 
 # Environment configuration
@@ -59,6 +63,13 @@ ml_model = None
 vectorizer = None
 stop_event: Optional[asyncio.Event] = None
 background_task = None
+engine: Optional[DetectionEngine] = None
+siem_dispatcher = SIEMDispatcher()
+circuit_breaker = CircuitBreaker(
+    failure_threshold=int(os.getenv("CB_FAILURE_THRESHOLD", "5")),
+    reset_timeout_seconds=float(os.getenv("CB_RESET_TIMEOUT_SECONDS", "30")),
+)
+LATENCY_SLA_MS = float(os.getenv("LATENCY_SLA_MS", "20"))
 security = SecurityManager(
     service_name="analyzer",
     redis_call=lambda coro: coro,
@@ -71,6 +82,13 @@ class AnalysisRequest(BaseModel):
     """Request for prompt analysis."""
     prompt: str = Field(..., description="The prompt to analyze", min_length=1, max_length=10000)
     context: Optional[str] = Field(None, description="Additional context", max_length=5000)
+    session_id: Optional[str] = Field(None, description="Cross-turn session id for attack correlation", max_length=256)
+    organization_id: Optional[str] = Field(None, description="Organization id for policy overrides", max_length=256)
+    response_text: Optional[str] = Field(None, description="Optional model response for output scanning", max_length=10000)
+    agent_trace: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="Optional agent/tool execution trace to monitor chain injection",
+    )
 
 
 class AnalysisResponse(BaseModel):
@@ -91,10 +109,62 @@ class HealthResponse(BaseModel):
     redis_connected: bool
 
 
+class FeedbackRequest(BaseModel):
+    """Analyst feedback payload for FP/FN retraining loop."""
+
+    prompt: str = Field(..., min_length=1, max_length=10000)
+    predicted_verdict: str = Field(..., min_length=3, max_length=32)
+    analyst_verdict: str = Field(..., min_length=3, max_length=32)
+    notes: Optional[str] = Field(None, max_length=4000)
+
+
+class ThreatIntelShareRequest(BaseModel):
+    """Request payload for community threat intel sharing."""
+
+    pattern: str = Field(..., min_length=3, max_length=500)
+    score: float = Field(0.7, ge=0.0, le=1.0)
+    category: str = Field(..., min_length=3, max_length=128)
+    source: str = Field("local", min_length=2, max_length=128)
+
+
+try:
+    from prometheus_client import Counter, Histogram, generate_latest
+except ImportError:  # pragma: no cover - optional dependency in some runtime modes
+    Counter = None
+    Histogram = None
+    generate_latest = None
+
+
+ANALYZE_REQUESTS = (
+    Counter(
+        "tenet_analyzer_requests_total",
+        "Total analyzer requests",
+        ["verdict"],
+    )
+    if Counter
+    else None
+)
+ANALYZE_LATENCY = (
+    Histogram(
+        "tenet_analyzer_latency_seconds",
+        "Analyzer latency in seconds",
+        buckets=(0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.5, 1.0),
+    )
+    if Histogram
+    else None
+)
+
+try:
+    from opentelemetry import trace
+    tracer = trace.get_tracer("tenet.analyzer")
+except Exception:  # pragma: no cover
+    tracer = None
+
+
 @app.on_event("startup")
 async def startup():
     """Initialize connections and models on startup."""
-    global redis_client, ml_model, vectorizer, background_task, stop_event
+    global redis_client, ml_model, vectorizer, background_task, stop_event, engine
     
     # Connect to Redis
     try:
@@ -123,6 +193,8 @@ async def startup():
             logger.warning(f"ML models not found at {MODEL_PATH}")
     except Exception:
         logger.exception("Failed to load ML models")
+
+    engine = DetectionEngine(redis_client=redis_client)
     
     # Create stop event and start background processor
     stop_event = asyncio.Event()
@@ -182,6 +254,14 @@ async def health_check():
     )
 
 
+@app.get("/metrics")
+async def metrics():
+    """Prometheus scrape endpoint."""
+    if not generate_latest:
+        raise HTTPException(status_code=503, detail="prometheus-client not installed")
+    return generate_latest()
+
+
 @app.post(
     "/v1/analyze",
     response_model=AnalysisResponse,
@@ -201,7 +281,22 @@ async def analyze_prompt(
     """
     auth = await security.require_auth(x_api_key, required_permission="analyze")
     prompt = request.prompt
-    result = run_analysis(prompt)
+    started = time.perf_counter()
+    with tracer.start_as_current_span("analyzer.analyze_prompt") if tracer else _null_context():
+        result = run_analysis(
+            prompt=prompt,
+            organization_id=request.organization_id,
+            session_id=request.session_id,
+            response_text=request.response_text,
+            agent_trace=request.agent_trace,
+        )
+    elapsed = time.perf_counter() - started
+    if ANALYZE_LATENCY:
+        ANALYZE_LATENCY.observe(elapsed)
+    if ANALYZE_REQUESTS:
+        ANALYZE_REQUESTS.labels(verdict=result.verdict).inc()
+    result.details["latency_ms"] = round(elapsed * 1000, 3)
+    result.details["heuristic_sla_met"] = result.details["latency_ms"] <= LATENCY_SLA_MS
     security.audit(
         action="analyze_prompt",
         result=result.verdict,
@@ -211,8 +306,103 @@ async def analyze_prompt(
     return result
 
 
-def run_analysis(prompt: str) -> AnalysisResponse:
+@app.post("/v1/feedback")
+async def submit_feedback(
+    request: FeedbackRequest,
+    x_api_key: Annotated[str, Header(...)],
+):
+    """Accept analyst FP/FN corrections for retraining loops."""
+    auth = await security.require_auth(x_api_key, required_permission="analyze")
+    if not engine:
+        raise HTTPException(status_code=503, detail="Detection engine not initialized")
+    feedback_file = engine.append_feedback(
+        prompt=request.prompt,
+        predicted_verdict=request.predicted_verdict,
+        analyst_verdict=request.analyst_verdict,
+        notes=request.notes,
+    )
+    security.audit(
+        action="submit_feedback",
+        result="success",
+        context=auth,
+        metadata={"feedback_file": feedback_file},
+    )
+    return {"status": "accepted", "feedback_file": feedback_file}
+
+
+@app.get("/v1/threat-intel/feed")
+async def get_threat_intel_feed(x_api_key: Annotated[str, Header(...)]):
+    """Return currently loaded collective threat intel feed."""
+    await security.require_auth(x_api_key, required_permission="analyze")
+    if not engine:
+        raise HTTPException(status_code=503, detail="Detection engine not initialized")
+    return engine.threat_intel
+
+
+@app.post("/v1/threat-intel/share")
+async def share_threat_intel(
+    request: ThreatIntelShareRequest,
+    x_api_key: Annotated[str, Header(...)],
+):
+    """Share a new attack pattern into the community threat intel feed."""
+    await security.require_auth(x_api_key, required_permission="analyze")
+    if not engine:
+        raise HTTPException(status_code=503, detail="Detection engine not initialized")
+    payload = engine.share_threat_pattern(
+        pattern=request.pattern,
+        score=request.score,
+        category=request.category,
+        source=request.source,
+    )
+    return {"status": "accepted", "patterns": len(payload.get("patterns", []))}
+
+
+def run_analysis(
+    prompt: str,
+    organization_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+    response_text: Optional[str] = None,
+    agent_trace: Optional[List[Dict[str, Any]]] = None,
+) -> AnalysisResponse:
     """Run full analysis on a prompt."""
+    if circuit_breaker.is_open:
+        return AnalysisResponse(
+            risk_score=0.0,
+            verdict="benign",
+            threat_type=None,
+            confidence=0.5,
+            details={"method": "fallback_allow", "reason": "circuit_breaker_open"},
+        )
+
+    if engine:
+        try:
+            result = engine.analyze(
+                prompt=prompt,
+                organization_id=organization_id,
+                session_id=session_id,
+                response_text=response_text,
+                agent_trace=agent_trace,
+                sklearn_fallback=_ml_score_for_engine,
+            )
+            circuit_breaker.record_success()
+            return AnalysisResponse(
+                risk_score=result.risk_score,
+                verdict=result.verdict,
+                threat_type=result.threat_type,
+                confidence=result.confidence,
+                details=result.details,
+            )
+        except Exception:
+            circuit_breaker.record_failure()
+            logger.exception("Detection engine failed; returning fallback allow")
+            return AnalysisResponse(
+                risk_score=0.0,
+                verdict="benign",
+                threat_type=None,
+                confidence=0.4,
+                details={"method": "fallback_allow", "reason": "engine_error"},
+            )
+
     # Heuristic analysis
     heuristic_result = heuristic_analysis(prompt)
     
@@ -263,6 +453,15 @@ def run_analysis(prompt: str) -> AnalysisResponse:
             confidence=0.85,
             details={"method": "combined"}
         )
+
+
+def _ml_score_for_engine(prompt: str) -> Dict[str, float]:
+    """Adapt sklearn model score for the new detection engine."""
+    result = ml_analysis(prompt)
+    return {
+        "risk_score": float(result.get("risk_score", 0.0)),
+        "confidence": float(result.get("confidence", 0.0)),
+    }
 
 
 def heuristic_analysis(prompt: str) -> dict:
@@ -398,6 +597,7 @@ async def _update_and_store_event(event: dict, event_id: str, result: AnalysisRe
     if result.verdict == "malicious":
         await redis_client.lpush("tenet:alerts", json.dumps(event))
         logger.warning(f"Alert: Malicious event detected - {event_id}")
+        await siem_dispatcher.publish(event)
 
 
 async def _process_single_event(event_json: str):
@@ -481,6 +681,16 @@ async def process_event_queue():
         except Exception:
             logger.exception("Queue processing error")
             await _wait_with_timeout(5.0)
+
+
+class _null_context:
+    """Simple no-op context manager for optional instrumentation."""
+
+    def __enter__(self):
+        return None
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
 
 
 if __name__ == "__main__":
