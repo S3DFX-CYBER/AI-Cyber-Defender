@@ -23,6 +23,8 @@ from typing import Any, Optional
 
 import redis.asyncio as redis
 from fastapi import FastAPI, Header, HTTPException, Query
+
+from services.security import SecurityManager
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -55,7 +57,6 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_TIMEOUT_S = float(os.getenv("REDIS_TIMEOUT_S", 2.0))
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", 8000))
-API_KEY = os.getenv("API_KEY", "tenet-dev-key-change-in-production")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
 CB_FAILURE_THRESHOLD = int(os.getenv("CB_FAILURE_THRESHOLD", 3))
@@ -155,6 +156,11 @@ redis_client: Optional[redis.Redis] = None
 redis_cb = CircuitBreaker("redis-ingest")
 _shutdown_event = asyncio.Event()
 _start_time = time.monotonic()
+security = SecurityManager(
+    service_name="ingest",
+    redis_call=lambda coro: redis_call(coro),
+    redis_client_getter=lambda: redis_client,
+)
 
 
 class LLMEventRequest(BaseModel):
@@ -285,12 +291,6 @@ async def _redis_reconnect_loop() -> None:
             await redis_cb.record_failure()
 
 
-def verify_api_key(x_api_key: str = Header(...)) -> str:
-    if x_api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return x_api_key
-
-
 @app.get("/health", response_model=HealthResponse)
 async def health_check() -> HealthResponse:
     redis_ok = await redis_call(redis_client.ping()) if redis_client else None
@@ -307,7 +307,7 @@ async def health_check() -> HealthResponse:
 
 @app.post("/v1/events/llm", response_model=LLMEventResponse)
 async def ingest_llm_event(request: LLMEventRequest, x_api_key: str = Header(...)):
-    verify_api_key(x_api_key)
+    auth = await security.require_auth(x_api_key, required_permission="ingest")
     if not request.prompt.strip():
         raise HTTPException(status_code=422, detail="Prompt must not be empty or whitespace")
 
@@ -324,6 +324,8 @@ async def ingest_llm_event(request: LLMEventRequest, x_api_key: str = Header(...
         "prompt": request.prompt,
         "system_prompt": request.system_prompt,
         "metadata": request.metadata,
+        "org_id": auth.org_id,
+        "api_key_id": auth.key_id,
         "blocked": blocked,
         "risk_score": risk_score,
         "verdict": verdict,
@@ -337,6 +339,13 @@ async def ingest_llm_event(request: LLMEventRequest, x_api_key: str = Header(...
         if not queued or not stored:
             degraded = True
             logger.warning("Event %s processed in degraded mode (not persisted)", event_id)
+
+    security.audit(
+        action="ingest_event",
+        result=verdict,
+        context=auth,
+        metadata={"event_id": event_id, "blocked": blocked, "risk_score": risk_score},
+    )
 
     return LLMEventResponse(
         event_id=event_id,
@@ -412,7 +421,7 @@ async def list_events(
     offset: int = Query(default=0, ge=0),
     x_api_key: str = Header(...),
 ):
-    verify_api_key(x_api_key)
+    auth = await security.require_auth(x_api_key, required_permission="read")
 
     if redis_cb.state == CircuitState.OPEN or not redis_client:
         raise HTTPException(status_code=503, detail="Service degraded - event store unavailable")
@@ -426,7 +435,9 @@ async def list_events(
         for key in keys:
             data = await redis_call(redis_client.get(key))
             if data:
-                events.append(json.loads(data))
+                parsed = json.loads(data)
+                if parsed.get("org_id") == auth.org_id:
+                    events.append(parsed)
 
         events.sort(key=lambda item: item.get("timestamp", ""), reverse=True)
 
@@ -445,7 +456,7 @@ async def list_events(
 
 @app.get("/v1/events/{event_id}", response_model=EventDetailResponse)
 async def get_event(event_id: str, x_api_key: str = Header(...)):
-    verify_api_key(x_api_key)
+    auth = await security.require_auth(x_api_key, required_permission="read")
 
     if not event_id.strip():
         raise HTTPException(status_code=422, detail="event_id must not be empty")
@@ -457,7 +468,10 @@ async def get_event(event_id: str, x_api_key: str = Header(...)):
         data = await redis_call(redis_client.get(f"tenet:event:{event_id}"))
         if not data:
             raise HTTPException(status_code=404, detail="Event not found")
-        return EventDetailResponse(**json.loads(data))
+        parsed = json.loads(data)
+        if parsed.get("org_id") != auth.org_id:
+            raise HTTPException(status_code=404, detail="Event not found")
+        return EventDetailResponse(**parsed)
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -467,7 +481,7 @@ async def get_event(event_id: str, x_api_key: str = Header(...)):
 
 @app.get("/v1/stats")
 async def get_stats(x_api_key: str = Header(...)):
-    verify_api_key(x_api_key)
+    auth = await security.require_auth(x_api_key, required_permission="read")
 
     if redis_cb.state == CircuitState.OPEN or not redis_client:
         raise HTTPException(status_code=503, detail="Service degraded - stats unavailable")
@@ -484,13 +498,15 @@ async def get_stats(x_api_key: str = Header(...)):
             data = await redis_call(redis_client.get(key))
             if data:
                 event = json.loads(data)
+                if event.get("org_id") != auth.org_id:
+                    continue
                 if event.get("blocked"):
                     blocked_count += 1
                 verdict = event.get("verdict", "benign")
                 threat_counts[verdict] = threat_counts.get(verdict, 0) + 1
 
         return {
-            "total_events": len(keys),
+            "total_events": sum(threat_counts.values()),
             "blocked_count": blocked_count,
             "threat_distribution": threat_counts,
             "timestamp": datetime.utcnow().isoformat(),
@@ -504,13 +520,31 @@ async def get_stats(x_api_key: str = Header(...)):
 
 @app.get("/v1/circuit-status")
 async def circuit_status(x_api_key: str = Header(...)):
-    verify_api_key(x_api_key)
+    auth = await security.require_auth(x_api_key, required_permission="read")
 
     return {
         "name": redis_cb.name,
         "state": redis_cb.state.value,
         "failure_threshold": redis_cb.failure_threshold,
         "recovery_timeout_s": redis_cb.recovery_timeout,
+    }
+
+
+@app.get("/v1/audit/export")
+async def export_audit_logs(limit: int = Query(default=200, ge=1, le=2000), x_api_key: str = Header(...)):
+    auth = await security.require_auth(x_api_key, required_permission="admin")
+    records = security.export_audit_records(auth.org_id, limit=limit)
+    security.audit(
+        action="audit_export",
+        result="success",
+        context=auth,
+        metadata={"record_count": len(records)},
+    )
+    return {
+        "org_id": auth.org_id,
+        "exported": len(records),
+        "records": records,
+        "format": "jsonl-compatible",
     }
 
 

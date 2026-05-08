@@ -23,6 +23,7 @@ except ImportError:
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from services.utils.logging_config import setup_logging
+from services.security import SecurityManager
 logger = setup_logging(__name__)
 
 # Environment configuration
@@ -30,7 +31,6 @@ REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", 8100))
-API_KEY = os.getenv("API_KEY")
 MODEL_PATH = os.getenv("MODEL_PATH", "./models/trained")
 PROMPT_INJECTION_THRESHOLD = float(os.getenv("PROMPT_INJECTION_THRESHOLD", 0.75))
 SHUTDOWN_TIMEOUT = float(os.getenv("SHUTDOWN_TIMEOUT", 10.0))
@@ -59,6 +59,11 @@ ml_model = None
 vectorizer = None
 stop_event: Optional[asyncio.Event] = None
 background_task = None
+security = SecurityManager(
+    service_name="analyzer",
+    redis_call=lambda coro: coro,
+    redis_client_getter=lambda: None,
+)
 
 
 # Models
@@ -90,11 +95,6 @@ class HealthResponse(BaseModel):
 async def startup():
     """Initialize connections and models on startup."""
     global redis_client, ml_model, vectorizer, background_task, stop_event
-    
-    # Validate required environment variables
-    if not API_KEY:
-        logger.error("API_KEY environment variable is not set")
-        raise RuntimeError("API_KEY environment variable is required but not set. Please configure API_KEY before starting the service.")
     
     # Connect to Redis
     try:
@@ -161,13 +161,6 @@ async def shutdown():
             logger.debug("Redis close failed during shutdown", exc_info=True)
 
 
-def verify_api_key(x_api_key: str):
-    """Verify API key for authentication."""
-    if x_api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return x_api_key
-
-
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint."""
@@ -193,7 +186,9 @@ async def health_check():
     "/v1/analyze",
     response_model=AnalysisResponse,
     responses={
-        401: {"description": "Invalid API key"}
+        401: {"description": "Invalid API key"},
+        403: {"description": "Insufficient permissions"},
+        429: {"description": "Rate limit or quota exceeded"}
     }
 )
 async def analyze_prompt(
@@ -204,9 +199,15 @@ async def analyze_prompt(
     Analyze a prompt for security threats.
     Uses both heuristic rules and ML-based detection.
     """
-    verify_api_key(x_api_key)
+    auth = await security.require_auth(x_api_key, required_permission="analyze")
     prompt = request.prompt
     result = run_analysis(prompt)
+    security.audit(
+        action="analyze_prompt",
+        result=result.verdict,
+        context=auth,
+        metadata={"risk_score": result.risk_score, "threat_type": result.threat_type},
+    )
     return result
 
 

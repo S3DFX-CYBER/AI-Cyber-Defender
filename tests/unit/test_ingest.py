@@ -231,7 +231,7 @@ class TestEventRetrievalEndpoint:
     @patch("services.ingest.app.redis_call", new_callable=AsyncMock)
     def test_get_event_returns_event(self, mock_redis_call):
         """Should return an event payload when it exists."""
-        mock_redis_call.return_value = '{"event_id":"evt-1","timestamp":"2026-01-01T00:00:00","source_type":"chat","source_id":"src-1","model":"gpt-4","prompt":"hello","system_prompt":null,"metadata":{},"blocked":false,"risk_score":0.0,"verdict":"benign"}'
+        mock_redis_call.return_value = '{"event_id":"evt-1","timestamp":"2026-01-01T00:00:00","source_type":"chat","source_id":"src-1","model":"gpt-4","prompt":"hello","system_prompt":null,"metadata":{},"blocked":false,"risk_score":0.0,"verdict":"benign","org_id":"default-org"}'
 
         response = client.get(
             "/v1/events/evt-1",
@@ -257,7 +257,7 @@ class TestEventRetrievalEndpoint:
     @patch("services.ingest.app.redis_call", new_callable=AsyncMock)
     def test_get_event_accepts_null_metadata(self, mock_redis_call):
         """Should support historic events persisted with null metadata."""
-        mock_redis_call.return_value = '{"event_id":"evt-2","timestamp":"2026-01-01T00:00:00","source_type":"chat","source_id":"src-2","model":"gpt-4","prompt":"hello","system_prompt":null,"metadata":null,"blocked":false,"risk_score":0.0,"verdict":"benign"}'
+        mock_redis_call.return_value = '{"event_id":"evt-2","timestamp":"2026-01-01T00:00:00","source_type":"chat","source_id":"src-2","model":"gpt-4","prompt":"hello","system_prompt":null,"metadata":null,"blocked":false,"risk_score":0.0,"verdict":"benign","org_id":"default-org"}'
 
         response = client.get(
             "/v1/events/evt-2",
