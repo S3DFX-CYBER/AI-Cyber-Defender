@@ -165,6 +165,13 @@ pip install -r requirements.txt --upgrade
 - Keep dependencies updated
 - Use Dependabot for alerts
 
+### Dependency Update Policy
+
+We use Dependabot to automatically monitor and update our dependencies to ensure our project maintains a strong security posture.
+- **Schedule**: Dependabot runs on a **weekly** schedule.
+- **Security-Only Alerts**: Dependabot is configured to only open Pull Requests for security vulnerabilities (`open-pull-requests-limit: 0`).
+- **Labels**: All automated dependency pull requests are labeled with `dependencies` and `security` for easier tracking.
+
 ## 🔍 Security Features
 
 ### Current Security Controls
