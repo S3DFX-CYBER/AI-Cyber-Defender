@@ -22,7 +22,7 @@ from enum import Enum
 from typing import Any, Optional
 
 import redis.asyncio as redis
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 
 from services.security import SecurityManager
 from fastapi.middleware.cors import CORSMiddleware
@@ -155,15 +155,15 @@ app.add_middleware(
 )
 
 # Prometheus metrics
-REQUEST_COUNT = Counter("http_requests_total", "Total HTTP requests", ["method", "endpoint", "http_status"])
-REQUEST_LATENCY = Histogram("http_request_duration_seconds", "HTTP request latency", ["method", "endpoint"])
+REQUEST_COUNT = Counter("http_requests_total", "Total HTTP requests", ["service", "method", "endpoint", "http_status"])
+REQUEST_LATENCY = Histogram("http_request_duration_seconds", "HTTP request latency", ["service", "method", "endpoint"])
 THREAT_DETECTION_COUNT = Counter("threat_detections_total", "Total threat detections", ["service", "threat_type", "verdict"])
 
 # Mount Prometheus metrics endpoint
-metrics_app = make_asgi_app()
-app.mount("/metrics", metrics_app)
-
-from fastapi import Request
+METRICS_ENABLED = os.getenv("METRICS_ENABLED", "true").lower() == "true"
+if METRICS_ENABLED:
+    metrics_app = make_asgi_app()
+    app.mount("/metrics", metrics_app)
 
 @app.middleware("http")
 async def prometheus_middleware(request: Request, call_next):
@@ -183,8 +183,8 @@ async def prometheus_middleware(request: Request, call_next):
     status_code = response.status_code
     
     if path != "/metrics":
-        REQUEST_COUNT.labels(method=method, endpoint=endpoint, http_status=status_code).inc()
-        REQUEST_LATENCY.labels(method=method, endpoint=endpoint).observe(process_time)
+        REQUEST_COUNT.labels(service="ingest", method=method, endpoint=endpoint, http_status=status_code).inc()
+        REQUEST_LATENCY.labels(service="ingest", method=method, endpoint=endpoint).observe(process_time)
         
     return response
 
