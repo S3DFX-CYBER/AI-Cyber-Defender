@@ -1,0 +1,260 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "TENET-AI SBOM",
+  "documentNamespace": "https://github.com/TENET-DEV-AI/TENET-AI/sbom/2026-06-08T09:24:21.921446",
+  "creationInfo": {
+    "created": "2026-06-08T09:24:21.921451",
+    "creators": [
+      "Tool: TENET-AI-SBOM-Generator"
+    ]
+  },
+  "packages": [
+    {
+      "name": "fastapi",
+      "SPDXID": "SPDXRef-0",
+      "versionInfo": "0.115.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "uvicorn[standard]",
+      "SPDXID": "SPDXRef-1",
+      "versionInfo": "0.46.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "starlette",
+      "SPDXID": "SPDXRef-2",
+      "versionInfo": "1.2.1  # CVE-2024-47874 fix",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "pydantic",
+      "SPDXID": "SPDXRef-3",
+      "versionInfo": "2.13.4",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "pydantic-settings",
+      "SPDXID": "SPDXRef-4",
+      "versionInfo": "2.14.1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "jinja2",
+      "SPDXID": "SPDXRef-5",
+      "versionInfo": "3.1.6  # CVE-2024-56326, CVE-2025-27516 fixes",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "h11",
+      "SPDXID": "SPDXRef-6",
+      "versionInfo": "0.15.0  # CVE-2025-43859 fix",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "scikit-learn",
+      "SPDXID": "SPDXRef-7",
+      "versionInfo": "1.8.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "numpy",
+      "SPDXID": "SPDXRef-8",
+      "versionInfo": "2.4.6",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "pandas",
+      "SPDXID": "SPDXRef-9",
+      "versionInfo": "3.0.2",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "joblib",
+      "SPDXID": "SPDXRef-10",
+      "versionInfo": "1.5.3",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "python-multipart",
+      "SPDXID": "SPDXRef-11",
+      "versionInfo": "0.0.18",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "redis",
+      "SPDXID": "SPDXRef-12",
+      "versionInfo": "5.0.1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "psycopg2-binary",
+      "SPDXID": "SPDXRef-13",
+      "versionInfo": "2.9.12",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "httpx",
+      "SPDXID": "SPDXRef-14",
+      "versionInfo": "0.28.1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "requests",
+      "SPDXID": "SPDXRef-15",
+      "versionInfo": "2.33.1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "python-dotenv",
+      "SPDXID": "SPDXRef-16",
+      "versionInfo": "1.2.2",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "python-dateutil",
+      "SPDXID": "SPDXRef-17",
+      "versionInfo": "2.8.2",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "axios",
+      "SPDXID": "SPDXRef-18",
+      "versionInfo": "1.16.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "lucide-react",
+      "SPDXID": "SPDXRef-19",
+      "versionInfo": "0.563.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "react",
+      "SPDXID": "SPDXRef-20",
+      "versionInfo": "19.2.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "react-dom",
+      "SPDXID": "SPDXRef-21",
+      "versionInfo": "19.2.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "recharts",
+      "SPDXID": "SPDXRef-22",
+      "versionInfo": "3.7.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "@eslint/js",
+      "SPDXID": "SPDXRef-23",
+      "versionInfo": "9.39.1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "@types/node",
+      "SPDXID": "SPDXRef-24",
+      "versionInfo": "24.10.1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "@types/react",
+      "SPDXID": "SPDXRef-25",
+      "versionInfo": "19.2.5",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "@types/react-dom",
+      "SPDXID": "SPDXRef-26",
+      "versionInfo": "19.2.3",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "@vitejs/plugin-react",
+      "SPDXID": "SPDXRef-27",
+      "versionInfo": "5.1.1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "eslint",
+      "SPDXID": "SPDXRef-28",
+      "versionInfo": "9.39.1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "eslint-plugin-react-hooks",
+      "SPDXID": "SPDXRef-29",
+      "versionInfo": "7.0.1",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "eslint-plugin-react-refresh",
+      "SPDXID": "SPDXRef-30",
+      "versionInfo": "0.4.24",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "globals",
+      "SPDXID": "SPDXRef-31",
+      "versionInfo": "16.5.0",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "typescript",
+      "SPDXID": "SPDXRef-32",
+      "versionInfo": "5.9.3",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "typescript-eslint",
+      "SPDXID": "SPDXRef-33",
+      "versionInfo": "8.46.4",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    },
+    {
+      "name": "vite",
+      "SPDXID": "SPDXRef-34",
+      "versionInfo": "7.3.2",
+      "downloadLocation": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION"
+    }
+  ]
+}

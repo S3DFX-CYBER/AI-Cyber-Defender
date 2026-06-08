@@ -1,0 +1,225 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-06-08T09:24:21.919773",
+    "component": {
+      "type": "application",
+      "name": "TENET-AI",
+      "version": "1.0.0"
+    }
+  },
+  "components": [
+    {
+      "name": "fastapi",
+      "version": "0.115.0",
+      "type": "library",
+      "purl": "pkg:pypi/fastapi@0.115.0"
+    },
+    {
+      "name": "uvicorn[standard]",
+      "version": "0.46.0",
+      "type": "library",
+      "purl": "pkg:pypi/uvicorn[standard]@0.46.0"
+    },
+    {
+      "name": "starlette",
+      "version": "1.2.1  # CVE-2024-47874 fix",
+      "type": "library",
+      "purl": "pkg:pypi/starlette@1.2.1  # CVE-2024-47874 fix"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.13.4",
+      "type": "library",
+      "purl": "pkg:pypi/pydantic@2.13.4"
+    },
+    {
+      "name": "pydantic-settings",
+      "version": "2.14.1",
+      "type": "library",
+      "purl": "pkg:pypi/pydantic-settings@2.14.1"
+    },
+    {
+      "name": "jinja2",
+      "version": "3.1.6  # CVE-2024-56326, CVE-2025-27516 fixes",
+      "type": "library",
+      "purl": "pkg:pypi/jinja2@3.1.6  # CVE-2024-56326, CVE-2025-27516 fixes"
+    },
+    {
+      "name": "h11",
+      "version": "0.15.0  # CVE-2025-43859 fix",
+      "type": "library",
+      "purl": "pkg:pypi/h11@0.15.0  # CVE-2025-43859 fix"
+    },
+    {
+      "name": "scikit-learn",
+      "version": "1.8.0",
+      "type": "library",
+      "purl": "pkg:pypi/scikit-learn@1.8.0"
+    },
+    {
+      "name": "numpy",
+      "version": "2.4.6",
+      "type": "library",
+      "purl": "pkg:pypi/numpy@2.4.6"
+    },
+    {
+      "name": "pandas",
+      "version": "3.0.2",
+      "type": "library",
+      "purl": "pkg:pypi/pandas@3.0.2"
+    },
+    {
+      "name": "joblib",
+      "version": "1.5.3",
+      "type": "library",
+      "purl": "pkg:pypi/joblib@1.5.3"
+    },
+    {
+      "name": "python-multipart",
+      "version": "0.0.18",
+      "type": "library",
+      "purl": "pkg:pypi/python-multipart@0.0.18"
+    },
+    {
+      "name": "redis",
+      "version": "5.0.1",
+      "type": "library",
+      "purl": "pkg:pypi/redis@5.0.1"
+    },
+    {
+      "name": "psycopg2-binary",
+      "version": "2.9.12",
+      "type": "library",
+      "purl": "pkg:pypi/psycopg2-binary@2.9.12"
+    },
+    {
+      "name": "httpx",
+      "version": "0.28.1",
+      "type": "library",
+      "purl": "pkg:pypi/httpx@0.28.1"
+    },
+    {
+      "name": "requests",
+      "version": "2.33.1",
+      "type": "library",
+      "purl": "pkg:pypi/requests@2.33.1"
+    },
+    {
+      "name": "python-dotenv",
+      "version": "1.2.2",
+      "type": "library",
+      "purl": "pkg:pypi/python-dotenv@1.2.2"
+    },
+    {
+      "name": "python-dateutil",
+      "version": "2.8.2",
+      "type": "library",
+      "purl": "pkg:pypi/python-dateutil@2.8.2"
+    },
+    {
+      "name": "axios",
+      "version": "1.16.0",
+      "type": "library",
+      "purl": "pkg:npm/axios@1.16.0"
+    },
+    {
+      "name": "lucide-react",
+      "version": "0.563.0",
+      "type": "library",
+      "purl": "pkg:npm/lucide-react@0.563.0"
+    },
+    {
+      "name": "react",
+      "version": "19.2.0",
+      "type": "library",
+      "purl": "pkg:npm/react@19.2.0"
+    },
+    {
+      "name": "react-dom",
+      "version": "19.2.0",
+      "type": "library",
+      "purl": "pkg:npm/react-dom@19.2.0"
+    },
+    {
+      "name": "recharts",
+      "version": "3.7.0",
+      "type": "library",
+      "purl": "pkg:npm/recharts@3.7.0"
+    },
+    {
+      "name": "@eslint/js",
+      "version": "9.39.1",
+      "type": "library",
+      "purl": "pkg:npm/@eslint/js@9.39.1"
+    },
+    {
+      "name": "@types/node",
+      "version": "24.10.1",
+      "type": "library",
+      "purl": "pkg:npm/@types/node@24.10.1"
+    },
+    {
+      "name": "@types/react",
+      "version": "19.2.5",
+      "type": "library",
+      "purl": "pkg:npm/@types/react@19.2.5"
+    },
+    {
+      "name": "@types/react-dom",
+      "version": "19.2.3",
+      "type": "library",
+      "purl": "pkg:npm/@types/react-dom@19.2.3"
+    },
+    {
+      "name": "@vitejs/plugin-react",
+      "version": "5.1.1",
+      "type": "library",
+      "purl": "pkg:npm/@vitejs/plugin-react@5.1.1"
+    },
+    {
+      "name": "eslint",
+      "version": "9.39.1",
+      "type": "library",
+      "purl": "pkg:npm/eslint@9.39.1"
+    },
+    {
+      "name": "eslint-plugin-react-hooks",
+      "version": "7.0.1",
+      "type": "library",
+      "purl": "pkg:npm/eslint-plugin-react-hooks@7.0.1"
+    },
+    {
+      "name": "eslint-plugin-react-refresh",
+      "version": "0.4.24",
+      "type": "library",
+      "purl": "pkg:npm/eslint-plugin-react-refresh@0.4.24"
+    },
+    {
+      "name": "globals",
+      "version": "16.5.0",
+      "type": "library",
+      "purl": "pkg:npm/globals@16.5.0"
+    },
+    {
+      "name": "typescript",
+      "version": "5.9.3",
+      "type": "library",
+      "purl": "pkg:npm/typescript@5.9.3"
+    },
+    {
+      "name": "typescript-eslint",
+      "version": "8.46.4",
+      "type": "library",
+      "purl": "pkg:npm/typescript-eslint@8.46.4"
+    },
+    {
+      "name": "vite",
+      "version": "7.3.2",
+      "type": "library",
+      "purl": "pkg:npm/vite@7.3.2"
+    }
+  ]
+}
