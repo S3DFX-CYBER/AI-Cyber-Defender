@@ -22,11 +22,13 @@ from enum import Enum
 from typing import Any, Optional
 
 import redis.asyncio as redis
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 
 from services.security import SecurityManager
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+
+from prometheus_client import Counter, Histogram, make_asgi_app
 
 
 class JSONFormatter(logging.Formatter):
@@ -151,6 +153,40 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Prometheus metrics
+REQUEST_COUNT = Counter("http_requests_total", "Total HTTP requests", ["service", "method", "endpoint", "http_status"])
+REQUEST_LATENCY = Histogram("http_request_duration_seconds", "HTTP request latency", ["service", "method", "endpoint"])
+THREAT_DETECTION_COUNT = Counter("threat_detections_total", "Total threat detections", ["service", "threat_type", "verdict"])
+
+# Mount Prometheus metrics endpoint
+METRICS_ENABLED = os.getenv("METRICS_ENABLED", "true").lower() == "true"
+if METRICS_ENABLED:
+    metrics_app = make_asgi_app()
+    app.mount("/metrics", metrics_app)
+
+@app.middleware("http")
+async def prometheus_middleware(request: Request, call_next):
+    method = request.method
+    path = request.url.path
+    
+    # Simple path normalization for metrics cardinality
+    if path.startswith("/v1/events/") and len(path.split("/")) == 4:
+        endpoint = "/v1/events/{event_id}"
+    else:
+        endpoint = path
+
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
+    status_code = response.status_code
+    
+    if path != "/metrics":
+        REQUEST_COUNT.labels(service="ingest", method=method, endpoint=endpoint, http_status=status_code).inc()
+        REQUEST_LATENCY.labels(service="ingest", method=method, endpoint=endpoint).observe(process_time)
+        
+    return response
 
 redis_client: Optional[redis.Redis] = None
 redis_cb = CircuitBreaker("redis-ingest")
@@ -313,7 +349,10 @@ async def ingest_llm_event(request: LLMEventRequest, x_api_key: str = Header(...
 
     event_id = str(uuid.uuid4())
     timestamp = datetime.utcnow().isoformat()
-    blocked, risk_score, verdict = quick_heuristic_check(request.prompt)
+    blocked, risk_score, verdict, threat_type = quick_heuristic_check(request.prompt)
+
+    if verdict != "benign" and threat_type:
+        THREAT_DETECTION_COUNT.labels(service="ingest", threat_type=threat_type, verdict=verdict).inc()
 
     event_payload = {
         "event_id": event_id,
@@ -358,7 +397,7 @@ async def ingest_llm_event(request: LLMEventRequest, x_api_key: str = Header(...
     )
 
 
-def quick_heuristic_check(prompt: str) -> tuple[bool, float, str]:
+def quick_heuristic_check(prompt: str) -> tuple[bool, float, str, Optional[str]]:
     prompt_lower = prompt.lower()
 
     injection_patterns = [
@@ -402,17 +441,17 @@ def quick_heuristic_check(prompt: str) -> tuple[bool, float, str]:
 
     for pattern in injection_patterns:
         if pattern in prompt_lower:
-            return True, 0.95, "malicious"
+            return True, 0.95, "malicious", "prompt_injection"
 
     for pattern in jailbreak_patterns:
         if pattern in prompt_lower:
-            return True, 0.90, "malicious"
+            return True, 0.90, "malicious", "jailbreak"
 
     for pattern in extraction_patterns:
         if pattern in prompt_lower:
-            return False, 0.75, "suspicious"
+            return False, 0.75, "suspicious", "data_extraction"
 
-    return False, 0.0, "benign"
+    return False, 0.0, "benign", None
 
 
 @app.get("/v1/events")

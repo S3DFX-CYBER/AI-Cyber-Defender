@@ -10,10 +10,12 @@ from datetime import datetime, timezone
 from typing import Annotated, Optional
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import redis.asyncio as redis
+from prometheus_client import Counter, Histogram, make_asgi_app
+import time
 try:
     import joblib
 except ImportError:
@@ -52,6 +54,36 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Prometheus metrics
+REQUEST_COUNT = Counter("http_requests_total", "Total HTTP requests", ["service", "method", "endpoint", "http_status"])
+REQUEST_LATENCY = Histogram("http_request_duration_seconds", "HTTP request latency", ["service", "method", "endpoint"])
+THREAT_DETECTION_COUNT = Counter("threat_detections_total", "Total threat detections", ["service", "threat_type", "verdict"])
+EVENTS_PROCESSED_COUNT = Counter("events_processed_total", "Total events processed from queue", ["status"])
+
+# Mount Prometheus metrics endpoint
+METRICS_ENABLED = os.getenv("METRICS_ENABLED", "true").lower() == "true"
+if METRICS_ENABLED:
+    metrics_app = make_asgi_app()
+    app.mount("/metrics", metrics_app)
+
+@app.middleware("http")
+async def prometheus_middleware(request: Request, call_next):
+    method = request.method
+    path = request.url.path
+    endpoint = path
+
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
+    status_code = response.status_code
+    
+    if path != "/metrics":
+        REQUEST_COUNT.labels(service="analyzer", method=method, endpoint=endpoint, http_status=status_code).inc()
+        REQUEST_LATENCY.labels(service="analyzer", method=method, endpoint=endpoint).observe(process_time)
+        
+    return response
 
 # Global state
 redis_client: Optional[redis.Redis] = None
@@ -221,7 +253,7 @@ def run_analysis(prompt: str) -> AnalysisResponse:
     
     # Combine results
     if heuristic_result["risk_score"] > 0.8:
-        return AnalysisResponse(
+        result = AnalysisResponse(
             risk_score=heuristic_result["risk_score"],
             verdict=heuristic_result["verdict"],
             threat_type=heuristic_result["threat_type"],
@@ -232,7 +264,7 @@ def run_analysis(prompt: str) -> AnalysisResponse:
             }
         )
     elif ml_result and ml_result["risk_score"] > PROMPT_INJECTION_THRESHOLD:
-        return AnalysisResponse(
+        result = AnalysisResponse(
             risk_score=ml_result["risk_score"],
             verdict=ml_result["verdict"],
             threat_type=ml_result["threat_type"],
@@ -240,7 +272,7 @@ def run_analysis(prompt: str) -> AnalysisResponse:
             details={"method": "ml", "model_version": "0.1"}
         )
     elif heuristic_result["risk_score"] > 0.5:
-        return AnalysisResponse(
+        result = AnalysisResponse(
             risk_score=heuristic_result["risk_score"],
             verdict="suspicious",
             threat_type=heuristic_result["threat_type"],
@@ -248,7 +280,7 @@ def run_analysis(prompt: str) -> AnalysisResponse:
             details={"method": "heuristic", "recommendation": "manual_review"}
         )
     elif ml_result and ml_result["risk_score"] > 0.5:
-        return AnalysisResponse(
+        result = AnalysisResponse(
             risk_score=ml_result["risk_score"],
             verdict="suspicious",
             threat_type=ml_result["threat_type"],
@@ -256,13 +288,18 @@ def run_analysis(prompt: str) -> AnalysisResponse:
             details={"method": "ml", "model_version": "0.1", "recommendation": "manual_review"}
         )
     else:
-        return AnalysisResponse(
+        result = AnalysisResponse(
             risk_score=max(heuristic_result["risk_score"], ml_result["risk_score"] if ml_result else 0.0),
             verdict="benign",
             threat_type=None,
             confidence=0.85,
             details={"method": "combined"}
         )
+        
+    if result.verdict != "benign" and result.threat_type:
+        THREAT_DETECTION_COUNT.labels(service="analyzer", threat_type=result.threat_type, verdict=result.verdict).inc()
+        
+    return result
 
 
 def heuristic_analysis(prompt: str) -> dict:
@@ -454,10 +491,15 @@ async def _process_single_event(event_json: str):
         prompt = prompt[:10000]
     
     # Analyze the prompt
-    result = run_analysis(prompt)
-    
-    # Update and store event
-    await _update_and_store_event(event, event_id, result)
+    try:
+        result = run_analysis(prompt)
+        
+        # Update and store event
+        await _update_and_store_event(event, event_id, result)
+        EVENTS_PROCESSED_COUNT.labels(status="success").inc()
+    except Exception as e:
+        EVENTS_PROCESSED_COUNT.labels(status="error").inc()
+        logger.error(f"Error processing event {event_id}: {str(e)}")
 
 
 async def process_event_queue():

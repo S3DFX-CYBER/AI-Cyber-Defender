@@ -1,0 +1,52 @@
+{
+  "title": "TENET-AI Observability",
+  "tags": ["tenet", "security", "metrics"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Total Requests Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[5m])) by (endpoint)",
+          "legendFormat": "{{endpoint}}"
+        }
+      ]
+    },
+    {
+      "title": "Threat Detections (Rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(threat_detections_total[5m])) by (threat_type, verdict)",
+          "legendFormat": "{{threat_type}} - {{verdict}}"
+        }
+      ]
+    },
+    {
+      "title": "P95 Latency",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "legendFormat": "{{endpoint}}"
+        }
+      ]
+    },
+    {
+      "title": "Total Threat Detections by Type",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(threat_detections_total) by (threat_type)",
+          "legendFormat": "{{threat_type}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38
+}
