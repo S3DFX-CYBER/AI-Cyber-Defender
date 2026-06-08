@@ -3,7 +3,50 @@
 
 import json
 import os
+import re
 from datetime import datetime
+
+def clean_version(version_str):
+    """Extract only version number, remove comments and constraints"""
+    # Remove inline comments (anything after #)
+    if '#' in version_str:
+        version_str = version_str.split('#')[0].strip()
+    
+    # Remove comparison operators for exact version extraction
+    # For >=, <=, >, <, ~=, != - we take the version part only
+    version_str = re.sub(r'^[>=<~!]+', '', version_str)
+    
+    # Handle compound constraints (take the first version)
+    if ',' in version_str:
+        version_str = version_str.split(',')[0].strip()
+    
+    return version_str or "unknown"
+
+def parse_requirement_line(line):
+    """Parse requirement line and extract name and version"""
+    line = line.strip()
+    if not line or line.startswith('#'):
+        return None, None
+    
+    # Handle various version specifiers
+    for operator in ['>=', '==', '<=', '~=', '!=', '>', '<']:
+        if operator in line:
+            parts = line.split(operator, 1)
+            name = parts[0].strip()
+            version = clean_version(parts[1])
+            return name, version
+    
+    # No version specified
+    return line, "latest"
+
+def generate_purl(name, version, ecosystem, is_scoped=False):
+    """Generate correct PURL with proper encoding for scoped packages"""
+    if ecosystem == "npm" and name.startswith('@'):
+        # Properly encode scoped packages: @scope/name -> %40scope/name
+        encoded_name = name.replace('@', '%40', 1)
+        return f"pkg:npm/{encoded_name}@{version}"
+    else:
+        return f"pkg:{ecosystem}/{name}@{version}"
 
 print("=" * 60)
 print("🚀 TENET-AI SBOM Generator")
@@ -16,20 +59,8 @@ python_deps = []
 if os.path.exists("requirements.txt"):
     with open("requirements.txt", "r") as f:
         for line in f:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                if ">=" in line:
-                    parts = line.split(">=")
-                    name = parts[0].strip()
-                    version = parts[1].strip()
-                elif "==" in line:
-                    parts = line.split("==")
-                    name = parts[0].strip()
-                    version = parts[1].strip()
-                else:
-                    name = line
-                    version = "latest"
-                
+            name, version = parse_requirement_line(line)
+            if name:
                 python_deps.append({
                     "name": name,
                     "version": version,
@@ -90,11 +121,12 @@ cyclonedx_sbom = {
 }
 
 for dep in all_deps:
+    purl = generate_purl(dep["name"], dep["version"], dep["ecosystem"])
     cyclonedx_sbom["components"].append({
         "name": dep["name"],
         "version": dep["version"],
         "type": "library",
-        "purl": f"pkg:{dep['ecosystem']}/{dep['name']}@{dep['version']}"
+        "purl": purl
     })
 
 with open("sbom_cyclonedx.json", "w") as f:
@@ -119,10 +151,12 @@ spdx_sbom = {
 }
 
 for idx, dep in enumerate(all_deps):
+    # Clean version for SPDX (remove any remaining comments)
+    clean_ver = clean_version(dep["version"])
     spdx_sbom["packages"].append({
         "name": dep["name"],
         "SPDXID": f"SPDXRef-{idx}",
-        "versionInfo": dep["version"],
+        "versionInfo": clean_ver,
         "downloadLocation": "NOASSERTION",
         "licenseConcluded": "NOASSERTION"
     })

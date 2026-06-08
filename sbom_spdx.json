@@ -3,9 +3,9 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "TENET-AI SBOM",
-  "documentNamespace": "https://github.com/TENET-DEV-AI/TENET-AI/sbom/2026-06-08T09:24:21.921446",
+  "documentNamespace": "https://github.com/TENET-DEV-AI/TENET-AI/sbom/2026-06-08T09:36:59.587934",
   "creationInfo": {
-    "created": "2026-06-08T09:24:21.921451",
+    "created": "2026-06-08T09:36:59.587940",
     "creators": [
       "Tool: TENET-AI-SBOM-Generator"
     ]
@@ -28,7 +28,7 @@
     {
       "name": "starlette",
       "SPDXID": "SPDXRef-2",
-      "versionInfo": "1.2.1  # CVE-2024-47874 fix",
+      "versionInfo": "1.2.1",
       "downloadLocation": "NOASSERTION",
       "licenseConcluded": "NOASSERTION"
     },
@@ -49,14 +49,14 @@
     {
       "name": "jinja2",
       "SPDXID": "SPDXRef-5",
-      "versionInfo": "3.1.6  # CVE-2024-56326, CVE-2025-27516 fixes",
+      "versionInfo": "3.1.6",
       "downloadLocation": "NOASSERTION",
       "licenseConcluded": "NOASSERTION"
     },
     {
       "name": "h11",
       "SPDXID": "SPDXRef-6",
-      "versionInfo": "0.15.0  # CVE-2025-43859 fix",
+      "versionInfo": "0.15.0",
       "downloadLocation": "NOASSERTION",
       "licenseConcluded": "NOASSERTION"
     },

@@ -3,7 +3,7 @@
   "specVersion": "1.5",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-06-08T09:24:21.919773",
+    "timestamp": "2026-06-08T09:36:59.586436",
     "component": {
       "type": "application",
       "name": "TENET-AI",
@@ -25,9 +25,9 @@
     },
     {
       "name": "starlette",
-      "version": "1.2.1  # CVE-2024-47874 fix",
+      "version": "1.2.1",
       "type": "library",
-      "purl": "pkg:pypi/starlette@1.2.1  # CVE-2024-47874 fix"
+      "purl": "pkg:pypi/starlette@1.2.1"
     },
     {
       "name": "pydantic",
@@ -43,15 +43,15 @@
     },
     {
       "name": "jinja2",
-      "version": "3.1.6  # CVE-2024-56326, CVE-2025-27516 fixes",
+      "version": "3.1.6",
       "type": "library",
-      "purl": "pkg:pypi/jinja2@3.1.6  # CVE-2024-56326, CVE-2025-27516 fixes"
+      "purl": "pkg:pypi/jinja2@3.1.6"
     },
     {
       "name": "h11",
-      "version": "0.15.0  # CVE-2025-43859 fix",
+      "version": "0.15.0",
       "type": "library",
-      "purl": "pkg:pypi/h11@0.15.0  # CVE-2025-43859 fix"
+      "purl": "pkg:pypi/h11@0.15.0"
     },
     {
       "name": "scikit-learn",
@@ -153,31 +153,31 @@
       "name": "@eslint/js",
       "version": "9.39.1",
       "type": "library",
-      "purl": "pkg:npm/@eslint/js@9.39.1"
+      "purl": "pkg:npm/%40eslint/js@9.39.1"
     },
     {
       "name": "@types/node",
       "version": "24.10.1",
       "type": "library",
-      "purl": "pkg:npm/@types/node@24.10.1"
+      "purl": "pkg:npm/%40types/node@24.10.1"
     },
     {
       "name": "@types/react",
       "version": "19.2.5",
       "type": "library",
-      "purl": "pkg:npm/@types/react@19.2.5"
+      "purl": "pkg:npm/%40types/react@19.2.5"
     },
     {
       "name": "@types/react-dom",
       "version": "19.2.3",
       "type": "library",
-      "purl": "pkg:npm/@types/react-dom@19.2.3"
+      "purl": "pkg:npm/%40types/react-dom@19.2.3"
     },
     {
       "name": "@vitejs/plugin-react",
       "version": "5.1.1",
       "type": "library",
-      "purl": "pkg:npm/@vitejs/plugin-react@5.1.1"
+      "purl": "pkg:npm/%40vitejs/plugin-react@5.1.1"
     },
     {
       "name": "eslint",
