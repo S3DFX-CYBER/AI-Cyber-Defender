@@ -96,6 +96,14 @@ jobs:
         retention-days: 30
 
     - name: Start complete infrastructure via Docker Compose
+      env:
+        POSTGRES_DB: tenet_test
+        POSTGRES_USER: tenet_user
+        POSTGRES_PASSWORD: tenet_password
+        MINIO_USER: tenet-ci
+        MINIO_PASSWORD: tenet-ci-minio-secret
+        API_KEY: tenet-dev-key-change-in-production
+        CORS_ORIGINS: "*"
       run: |
         # Builds and starts Redis, Postgres, MinIO, Ingest, and Analyzer
         docker compose up -d --build
