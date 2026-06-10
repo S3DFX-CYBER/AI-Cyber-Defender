@@ -4,9 +4,9 @@
 # Core Framework (with security fixes)
 fastapi>=0.115.0
 uvicorn[standard]>=0.46.0
-starlette>=0.40.0  # CVE-2024-47874 fix
+starlette>=1.2.1  # CVE-2024-47874 fix
 pydantic>=2.13.4
-pydantic-settings>=2.1.0
+pydantic-settings>=2.14.1
 
 # Template Engine (with security fixes)
 jinja2>=3.1.6  # CVE-2024-56326, CVE-2025-27516 fixes
@@ -16,7 +16,7 @@ h11>=0.15.0  # CVE-2025-43859 fix
 
 # ML & Data Science
 scikit-learn>=1.8.0
-numpy>=1.26.2
+numpy>=2.4.6
 pandas>=3.0.2
 joblib>=1.5.3
 
