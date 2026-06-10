@@ -65,13 +65,11 @@ security = SecurityManager(
     redis_client_getter=lambda: None,
 )
 
-
 # Models
 class AnalysisRequest(BaseModel):
     """Request for prompt analysis."""
     prompt: str = Field(..., description="The prompt to analyze", min_length=1, max_length=10000)
     context: Optional[str] = Field(None, description="Additional context", max_length=5000)
-
 
 class AnalysisResponse(BaseModel):
     """Analysis result."""
@@ -81,7 +79,6 @@ class AnalysisResponse(BaseModel):
     confidence: float
     details: dict
 
-
 class HealthResponse(BaseModel):
     """Health check response."""
     status: str
@@ -90,13 +87,11 @@ class HealthResponse(BaseModel):
     model_loaded: bool
     redis_connected: bool
 
-
 @app.on_event("startup")
 async def startup():
     """Initialize connections and models on startup."""
     global redis_client, ml_model, vectorizer, background_task, stop_event
     
-    # Connect to Redis
     try:
         redis_client = redis.Redis(
             host=REDIS_HOST,
@@ -109,7 +104,6 @@ async def startup():
         logger.exception("Failed to connect to Redis")
         redis_client = None
     
-    # Load ML models
     try:
         model_dir = Path(MODEL_PATH)
         model_file = model_dir / "prompt_detector.joblib"
@@ -124,22 +118,18 @@ async def startup():
     except Exception:
         logger.exception("Failed to load ML models")
     
-    # Create stop event and start background processor
     stop_event = asyncio.Event()
     background_task = asyncio.create_task(process_event_queue())
-
 
 @app.on_event("shutdown")
 async def shutdown():
     """Cleanup on shutdown."""
     global redis_client, stop_event, background_task
     
-    # Signal the background task to stop
     if stop_event:
         stop_event.set()
         logger.info("Stop event set, waiting for background task to finish")
     
-    # Wait for background task to complete gracefully
     if background_task:
         try:
             await asyncio.wait_for(background_task, timeout=SHUTDOWN_TIMEOUT)
@@ -149,17 +139,15 @@ async def shutdown():
             background_task.cancel()
             try:
                 await background_task
-            except asyncio.CancelledError:  # NOSONAR - Don't re-raise in shutdown handler, cancellation is expected
+            except asyncio.CancelledError:
                 logger.info("Background task cancelled successfully")
 
-    # Close Redis connection
     if redis_client:
         try:
             await redis_client.close()
             logger.info("Redis connection closed")
         except Exception:
             logger.debug("Redis close failed during shutdown", exc_info=True)
-
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -181,10 +169,11 @@ async def health_check():
         redis_connected=redis_connected
     )
 
-
 @app.post(
     "/v1/analyze",
     response_model=AnalysisResponse,
+    summary="Analyze prompt for security threats",
+    tags=["Analysis"],
     responses={
         401: {"description": "Invalid API key"},
         403: {"description": "Insufficient permissions"},
@@ -193,11 +182,11 @@ async def health_check():
 )
 async def analyze_prompt(
     request: AnalysisRequest,
-    x_api_key: Annotated[str, Header(...)]
+    x_api_key: Annotated[str, Header(..., description="Your secret API key for authorization")]
 ):
     """
     Analyze a prompt for security threats.
-    Uses both heuristic rules and ML-based detection.
+    Uses both heuristic rules and ML-based detection to evaluate the input prompt.
     """
     auth = await security.require_auth(x_api_key, required_permission="analyze")
     prompt = request.prompt
@@ -210,16 +199,11 @@ async def analyze_prompt(
     )
     return result
 
-
 def run_analysis(prompt: str) -> AnalysisResponse:
     """Run full analysis on a prompt."""
-    # Heuristic analysis
     heuristic_result = heuristic_analysis(prompt)
-    
-    # ML analysis (if model is loaded)
     ml_result = ml_analysis(prompt) if ml_model else None
     
-    # Combine results
     if heuristic_result["risk_score"] > 0.8:
         return AnalysisResponse(
             risk_score=heuristic_result["risk_score"],
@@ -264,7 +248,6 @@ def run_analysis(prompt: str) -> AnalysisResponse:
             details={"method": "combined"}
         )
 
-
 def heuristic_analysis(prompt: str) -> dict:
     """Rule-based heuristic analysis."""
     prompt_lower = prompt.lower()
@@ -272,7 +255,6 @@ def heuristic_analysis(prompt: str) -> dict:
     max_score = 0.0
     threat_type = None
     
-    # Pattern definitions with scores
     patterns = {
         "prompt_injection": {
             "ignore previous instructions": 0.95,
@@ -322,7 +304,6 @@ def heuristic_analysis(prompt: str) -> dict:
         "patterns": matched_patterns
     }
 
-
 def ml_analysis(prompt: str) -> dict:
     """ML-based analysis using trained model."""
     global ml_model, vectorizer
@@ -331,15 +312,9 @@ def ml_analysis(prompt: str) -> dict:
         return {"risk_score": 0.0, "verdict": "unknown", "threat_type": None, "confidence": 0.0}
     
     try:
-        # Vectorize the prompt
         X = vectorizer.transform([prompt])
-        
-        # Get prediction probabilities
         proba = ml_model.predict_proba(X)[0]
-        
-        # Assuming binary classification: [benign, malicious]
         malicious_prob = proba[1] if len(proba) > 1 else proba[0]
-        
         verdict = "malicious" if malicious_prob > PROMPT_INJECTION_THRESHOLD else "benign"
         if 0.5 < malicious_prob <= PROMPT_INJECTION_THRESHOLD:
             verdict = "suspicious"
@@ -354,134 +329,63 @@ def ml_analysis(prompt: str) -> dict:
         logger.exception("ML analysis error")
         return {"risk_score": 0.0, "verdict": "error", "threat_type": None, "confidence": 0.0}
 
-
 async def _wait_for_stop_event():
-    """Helper to wait for stop event. Use with asyncio.timeout() context manager."""
-    # Defensive check: ensure stop_event exists before awaiting
     if stop_event is None:
         return
     await stop_event.wait()
 
-
 async def _wait_with_timeout(seconds: float):
-    """Wait for stop event with timeout, suppressing TimeoutError."""
     try:
         async with asyncio.timeout(seconds):
             await _wait_for_stop_event()
     except asyncio.TimeoutError:
         pass
 
-
 async def _update_and_store_event(event: dict, event_id: str, result: AnalysisResponse):
-    """Update event with analysis results and store in Redis."""
-    # Ensure redis_client is available
     if not redis_client:
-        logger.warning(f"Cannot store event {event_id}: Redis client not available")
         return
-    
-    # Update the event with analysis results
     event["analyzed"] = True
     event["risk_score"] = result.risk_score
     event["verdict"] = result.verdict
     event["threat_type"] = result.threat_type
     event["analysis_details"] = result.details
     event["analyzed_at"] = datetime.now(timezone.utc).isoformat()
-    
-    # Store updated event
-    await redis_client.set(
-        f"tenet:event:{event_id}",
-        json.dumps(event),
-        ex=86400
-    )
-    
-    # If malicious, add to alerts
+    await redis_client.set(f"tenet:event:{event_id}", json.dumps(event), ex=86400)
     if result.verdict == "malicious":
         await redis_client.lpush("tenet:alerts", json.dumps(event))
-        logger.warning(f"Alert: Malicious event detected - {event_id}")
-
 
 async def _process_single_event(event_json: str):
-    """Process a single event from the queue."""
     try:
         event = json.loads(event_json)
     except json.JSONDecodeError:
-        logger.exception("Failed to parse event JSON")
         return
-    
-    # Validate event structure
-    if not isinstance(event, dict):
-        logger.warning("Event is not a dictionary, skipping")
-        return
-    
-    # Validate event_id presence and format
     event_id = event.get('event_id')
     if not event_id or not isinstance(event_id, str):
-        # Log only safe metadata, avoid exposing sensitive prompts
-        safe_summary = {
-            "user_id": event.get('user_id'),
-            "timestamp": event.get('timestamp'),
-            "has_prompt": 'prompt' in event,
-            "prompt_length": len(event.get('prompt', '')) if isinstance(event.get('prompt'), str) else 0
-        }
-        logger.warning(f"Skipping event without valid event_id. Safe metadata: {safe_summary}")
         return
-    
-    # Additional event_id validation
     event_id = event_id.strip()
-    if not event_id:
-        logger.warning("Skipping event with empty event_id after stripping")
-        return
-    
-    if len(event_id) > 255:
-        logger.warning(f"Skipping event with overly long event_id ({len(event_id)} chars)")
-        return
-    
-    logger.info(f"Processing event: {event_id}")
-    
-    # Get and validate prompt
     prompt = event.get("prompt", "")
-    if not isinstance(prompt, str):
-        logger.warning(f"Event {event_id} has invalid prompt type, skipping")
+    if not isinstance(prompt, str) or not prompt.strip():
         return
-    
-    if not prompt.strip():
-        logger.warning(f"Event {event_id} has empty prompt, skipping")
-        return
-    
-    # Truncate very long prompts for safety
     if len(prompt) > 10000:
-        logger.warning(f"Event {event_id} has overly long prompt ({len(prompt)} chars), truncating")
         prompt = prompt[:10000]
-    
-    # Analyze the prompt
     result = run_analysis(prompt)
-    
-    # Update and store event
     await _update_and_store_event(event, event_id, result)
 
-
 async def process_event_queue():
-    """Background task to process events from the queue."""
     global stop_event, redis_client
-    
     while not stop_event.is_set():
         try:
             if not redis_client:
                 await _wait_with_timeout(5.0)
                 continue
-            
-            # Pop event from queue
             event_json = await redis_client.rpop("tenet:events:queue")
-            
             if event_json:
                 await _process_single_event(event_json)
             else:
                 await _wait_with_timeout(1.0)
-                
         except Exception:
             logger.exception("Queue processing error")
             await _wait_with_timeout(5.0)
-
 
 if __name__ == "__main__":
     import uvicorn
