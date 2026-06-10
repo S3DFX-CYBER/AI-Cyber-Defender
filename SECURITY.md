@@ -10,7 +10,7 @@ TENET AI is a security tool, so we take security issues very seriously. We appre
 
 Instead, report them via:
 
-1. **Private Security Advisory**: Use GitHub's [private security advisory](https://github.com/yourusername/tenet-ai/security/advisories/new) feature
+1. **Private Security Advisory**: Use GitHub's private security advisory feature
 
 ### What to Include
 
@@ -278,7 +278,7 @@ Before deploying to production:
 
 - **Security Team**: saviodsouza8a@gmail.com
 - **PGP Key**: [Available on request]
-- **Security Advisory Page**: https://github.com/yourusername/tenet-ai/security/advisories
+- **Security Advisory Page**: https://github.com/S3DFX-CYBER/AI-Cyber-Defender/security/advisories
 
 ## 🙏 Thank You
 

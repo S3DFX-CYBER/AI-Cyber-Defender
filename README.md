@@ -135,7 +135,7 @@ Security Operations Center interface for:
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/AI-Cyber-Defender
+git clone https://github.com/S3DFX-CYBER/AI-Cyber-Defender
 cd AI-Cyber-Defender
 
 # Install dependencies
@@ -404,11 +404,11 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## 📚 Documentation
 
-- [Architecture Overview](docs/architecture.md)
-- [API Reference](docs/api-reference.md)
-- [Deployment Guide](docs/deployment.md)
-- [Detection Logic](docs/detection.md)
-- [Integration Examples](docs/integrations.md)
+- [Architecture Overview](ARCHITECTURE_DEEP_DIVE.md)
+- [Integration Examples](USAGE_EXAMPLES.md)
+- [TENET Agent Setup](TENET_AGENT_SETUP.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
 
 ---
 
