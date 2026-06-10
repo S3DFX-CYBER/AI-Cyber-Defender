@@ -38,12 +38,22 @@ from prompts import (
 
 # Allowed source file extensions for LLM-proposed paths
 _ALLOWED_EXTENSIONS = {
-    ".py", ".ts", ".tsx", ".js", ".jsx",
-    ".json", ".yaml", ".yml", ".md", ".txt", ".env.example",
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".md",
+    ".txt",
+    ".env.example",
 }
 
 
 # ─── Parsing helpers ──────────────────────────────────────────────────────────
+
 
 def _safe_filepath(filepath: str, repo_root: Path) -> str | None:
     """
@@ -145,6 +155,7 @@ def extract_commit_message(llm_output: str, fallback: str) -> str:
 
 # ─── Main flow ────────────────────────────────────────────────────────────────
 
+
 def main():
     """Run the TENET Agent issue-solver workflow."""
     print("🛡️  TENET Agent - Issue Solver starting...")
@@ -212,9 +223,7 @@ def main():
 
     if file_changes is None:
         # LLM said it cannot fix this issue
-        cannot_fix_reason = re.sub(
-            r".*### CANNOT_FIX\s*", "", code_output, flags=re.DOTALL
-        ).strip()
+        cannot_fix_reason = re.sub(r".*### CANNOT_FIX\s*", "", code_output, flags=re.DOTALL).strip()
         comment = (
             f"## 🤖 TENET Agent - Cannot Auto-Fix\n\n"
             f"After analyzing issue #{issue_number}, TENET Agent determined it cannot "

@@ -1,5 +1,6 @@
 """Framework-agnostic TENET AI security plugin."""
 
-from .client import TenetSecurityPlugin, TenetPluginError
+from .client import TenetPluginError
+from .client import TenetSecurityPlugin
 
-__all__ = ["TenetSecurityPlugin", "TenetPluginError"]
+__all__ = ["TenetPluginError", "TenetSecurityPlugin"]

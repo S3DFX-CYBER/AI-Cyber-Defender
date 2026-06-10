@@ -9,7 +9,6 @@ import json
 import sys
 from pathlib import Path
 
-
 REQUIRED_FILES = ["prompt_detector.joblib", "vectorizer.joblib", "metadata.json", "checksums.json"]
 REQUIRED_METADATA_FIELDS = [
     "schema_version",
@@ -84,7 +83,9 @@ def validate(model_path: Path) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate model artifacts in a target directory")
-    parser.add_argument("--model-path", default="models/trained", help="Path to model artifact directory")
+    parser.add_argument(
+        "--model-path", default="models/trained", help="Path to model artifact directory"
+    )
     args = parser.parse_args()
 
     model_path = Path(args.model_path)

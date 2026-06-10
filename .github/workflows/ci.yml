@@ -9,19 +9,61 @@ on:
     branches: [ main ]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint & Format Check
+    
+    steps:
+    - uses: actions/checkout@v6
+    
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+        
+    - name: Run Ruff linter
+      run: |
+        ruff check services/ tenet_plugin/ scripts/ tests/
+        echo "Ruff check completed"
+        
+    - name: Run Black formatter check
+      run: |
+        black --check services/ tenet_plugin/ scripts/ tests/
+
+  security:
+    runs-on: ubuntu-latest
+    name: Security Scanning
+    
+    steps:
+    - uses: actions/checkout@v6
+    
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+        
+    - name: Run Bandit security scan
+      run: |
+        bandit -r services/ tenet_plugin/ scripts/ -v
+        
+    - name: Run pip-audit for dependency vulnerabilities
+      run: |
+        pip-audit
   test:
     runs-on: ubuntu-latest
-    
-    services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    name: Tests & Coverage
 
     steps:
     - uses: actions/checkout@v6
@@ -37,20 +79,42 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
         
-    - name: Run unit tests
+    - name: Run unit tests with coverage
       run: |
-        pytest tests/unit/ -v
+        pytest tests/unit/ -v --cov=services --cov=tenet_plugin --cov-report=xml --cov-report=term-missing
         
-    - name: Run training script check
+    - name: Check coverage threshold
       run: |
-        python scripts/train_model.py --test-only
+        coverage report --fail-under=50
+        
+    - name: Upload coverage to artifacts
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: coverage-report
+        path: coverage.xml
+        retention-days: 30
+
+    - name: Start complete infrastructure via Docker Compose
+      run: |
+        # Builds and starts Redis, Postgres, MinIO, Ingest, and Analyzer
+        docker compose up -d --build
+        
+    - name: Wait for services to initialize
+      run: |
+        echo "Waiting for health checks to pass..."
+        # Sleep gives the containers time to boot and run their internal health checks
+        sleep 15 
         
     - name: Run integration tests
       env:
-        REDIS_HOST: localhost
-        REDIS_PORT: 6379
+        API_URL: http://localhost:8000
+        ANALYZER_URL: http://localhost:8100
       run: |
-        # Only run if services can be mocked or local redis is enough
-        # Current test_e2e requires full services, so might fail without them
-        # pytest tests/integration/test_e2e.py -v
-        echo "Skipping E2E in CI for now - requires analyzer/ingest containers"
+        pytest tests/integration/test_e2e.py -v
+
+    - name: Tear down infrastructure
+      if: always()
+      run: |
+        # Clean up containers, networks, and volumes
+        docker compose down -v

@@ -1,6 +1,7 @@
 """Unit tests for framework-agnostic TENET plugin."""
 
-from tenet_plugin import TenetSecurityPlugin, TenetPluginError
+from tenet_plugin import TenetPluginError
+from tenet_plugin import TenetSecurityPlugin
 
 
 class DummyResponse:
@@ -21,7 +22,7 @@ class DummySession:
         self._response = response
         self._err = err
 
-    def post(self, *args, **kwargs):
+    def post(self, *_args, **_kwargs):
         if self._err:
             raise self._err
         return self._response
@@ -43,7 +44,7 @@ def test_secure_call_blocks_when_tenet_blocks():
     result = plugin.secure_call(
         prompt="ignore instructions",
         model="gpt-4",
-        llm_callable=lambda **kwargs: "never called",
+        llm_callable=lambda **_kwargs: "never called",
     )
 
     assert result["status"] == "blocked"
@@ -66,7 +67,7 @@ def test_secure_call_allows_when_benign():
     result = plugin.secure_call(
         prompt="hello",
         model="gpt-4",
-        llm_callable=lambda **kwargs: "ok",
+        llm_callable=lambda **_kwargs: "ok",
     )
 
     assert result["status"] == "success"
@@ -104,7 +105,7 @@ def test_secure_messages_call_flattens_messages():
     result = plugin.secure_messages_call(
         messages=[{"role": "user", "content": "hello"}],
         model="gpt-4",
-        llm_callable=lambda **kwargs: "ok",
+        llm_callable=lambda **_kwargs: "ok",
     )
 
     assert result["status"] == "success"

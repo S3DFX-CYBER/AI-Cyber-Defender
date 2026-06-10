@@ -8,13 +8,14 @@ import json
 import os
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from fastapi import HTTPException
-
 
 DEFAULT_ROLE_PERMISSIONS: dict[str, set[str]] = {
     "viewer": {"read"},
@@ -40,8 +41,8 @@ class SecurityManager:
     def __init__(
         self,
         service_name: str,
-        redis_call: Optional[Callable[[Any], Any]] = None,
-        redis_client_getter: Optional[Callable[[], Any]] = None,
+        redis_call: Callable[[Any], Any] | None = None,
+        redis_client_getter: Callable[[], Any] | None = None,
     ) -> None:
         self.service_name = service_name
         self.redis_call = redis_call
@@ -71,7 +72,7 @@ class SecurityManager:
                 if not isinstance(parsed, dict):
                     raise ValueError("TENET_API_KEYS_JSON must be a JSON object")
                 return parsed
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 raise RuntimeError(f"Invalid TENET_API_KEYS_JSON: {exc}") from exc
 
         fallback_key = os.getenv("API_KEY", "tenet-dev-key-change-in-production")
@@ -91,7 +92,9 @@ class SecurityManager:
             raise HTTPException(status_code=401, detail="Invalid API key")
 
         role = key_cfg.get("role", "viewer")
-        permissions = set(key_cfg.get("permissions", [])) or DEFAULT_ROLE_PERMISSIONS.get(role, {"read"})
+        permissions = set(key_cfg.get("permissions", [])) or DEFAULT_ROLE_PERMISSIONS.get(
+            role, {"read"}
+        )
         org_id = str(key_cfg.get("org_id", "default-org"))
         key_id = str(key_cfg.get("key_id", "unknown-key"))
 
@@ -148,7 +151,9 @@ class SecurityManager:
             return int_count
         return self._increment_memory_counter(key, ttl, in_memory_bucket)
 
-    def _increment_memory_counter(self, key: str, ttl: int, store: dict[str, tuple[int, int]]) -> int:
+    def _increment_memory_counter(
+        self, key: str, ttl: int, store: dict[str, tuple[int, int]]
+    ) -> int:
         now = int(time.time())
         count, expires_at = store.get(key, (0, now + ttl))
         if now >= expires_at:
@@ -162,11 +167,11 @@ class SecurityManager:
         self,
         action: str,
         result: str,
-        context: Optional[AuthContext] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        context: AuthContext | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         record = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "service": self.service_name,
             "action": action,
             "result": result,
@@ -178,8 +183,10 @@ class SecurityManager:
 
         with self._audit_lock:
             canonical = json.dumps(record, sort_keys=True, separators=(",", ":"))
-            digest = hashlib.sha256(f"{self._last_hash}{canonical}".encode("utf-8")).hexdigest()
-            signature = hmac.new(self.audit_secret.encode("utf-8"), digest.encode("utf-8"), hashlib.sha256).hexdigest()
+            digest = hashlib.sha256(f"{self._last_hash}{canonical}".encode()).hexdigest()
+            signature = hmac.new(
+                self.audit_secret.encode("utf-8"), digest.encode("utf-8"), hashlib.sha256
+            ).hexdigest()
             enriched = {
                 **record,
                 "prev_hash": self._last_hash,

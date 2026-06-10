@@ -4,6 +4,7 @@ TENET AI - LLM Plugin Integration Demo
 This script demonstrates how TENET AI acts as a security middleware
 plugin that intercepts LLM requests before they reach the model.
 """
+
 import time
 from typing import Any, Dict
 
@@ -19,7 +20,9 @@ class DemoLLM:
         return f"[{model}] simulated response to: {prompt[:30]}..."
 
 
-def secure_llm_call(plugin: TenetSecurityPlugin, prompt: str, model: str = "gpt-4") -> Dict[str, Any]:
+def secure_llm_call(
+    plugin: TenetSecurityPlugin, prompt: str, model: str = "gpt-4"
+) -> Dict[str, Any]:
     """Guard and execute a model call with TENET security checks."""
     print("\n[Plugin] Intercepted prompt:", repr(prompt[:50] + "..."))
     result = plugin.secure_call(

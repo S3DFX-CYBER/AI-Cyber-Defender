@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any
 
 import requests
 
@@ -20,7 +22,7 @@ class GuardResult:
     verdict: str
     risk_score: float
     event_id: str
-    raw: Dict[str, Any]
+    raw: dict[str, Any]
 
 
 class TenetSecurityPlugin:
@@ -38,7 +40,7 @@ class TenetSecurityPlugin:
         source_id: str = "default",
         timeout_seconds: float = 5.0,
         fail_mode: str = "open",
-        session: Optional[requests.Session] = None,
+        session: requests.Session | None = None,
     ) -> None:
         if fail_mode not in {"open", "closed"}:
             raise ValueError("fail_mode must be 'open' or 'closed'")
@@ -52,15 +54,15 @@ class TenetSecurityPlugin:
         self.session = session or requests.Session()
 
     @property
-    def headers(self) -> Dict[str, str]:
+    def headers(self) -> dict[str, str]:
         return {"X-API-Key": self.api_key, "Content-Type": "application/json"}
 
     def inspect_prompt(
         self,
         prompt: str,
         model: str,
-        source_id: Optional[str] = None,
-        source_type: Optional[str] = None,
+        source_id: str | None = None,
+        source_type: str | None = None,
     ) -> GuardResult:
         """Send a prompt to TENET and return a normalized guard result."""
         payload = {
@@ -104,10 +106,10 @@ class TenetSecurityPlugin:
         prompt: str,
         model: str,
         llm_callable: Callable[..., Any],
-        llm_kwargs: Optional[Dict[str, Any]] = None,
-        source_id: Optional[str] = None,
-        source_type: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        llm_kwargs: dict[str, Any] | None = None,
+        source_id: str | None = None,
+        source_type: str | None = None,
+    ) -> dict[str, Any]:
         """Guard a single LLM call and run it only when allowed."""
         analysis = self.inspect_prompt(
             prompt=prompt,
@@ -134,13 +136,13 @@ class TenetSecurityPlugin:
     def secure_messages_call(
         self,
         *,
-        messages: Iterable[Dict[str, Any]],
+        messages: Iterable[dict[str, Any]],
         model: str,
         llm_callable: Callable[..., Any],
-        llm_kwargs: Optional[Dict[str, Any]] = None,
-        source_id: Optional[str] = None,
-        source_type: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        llm_kwargs: dict[str, Any] | None = None,
+        source_id: str | None = None,
+        source_type: str | None = None,
+    ) -> dict[str, Any]:
         """Guard a chat-style messages payload before model execution."""
         flattened_prompt = self._extract_prompt_from_messages(messages)
         return self.secure_call(
@@ -153,8 +155,8 @@ class TenetSecurityPlugin:
         )
 
     @staticmethod
-    def _extract_prompt_from_messages(messages: Iterable[Dict[str, Any]]) -> str:
-        parts: List[str] = []
+    def _extract_prompt_from_messages(messages: Iterable[dict[str, Any]]) -> str:
+        parts: list[str] = []
         for message in messages:
             role = message.get("role", "unknown")
             content = message.get("content", "")

@@ -24,9 +24,9 @@ services:
     image: postgres:15-alpine
     container_name: tenet-postgres
     environment:
-      POSTGRES_DB: tenet_ai
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -45,8 +45,8 @@ services:
     image: minio/minio:latest
     container_name: tenet-minio
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
     ports:
       - "9000:9000"
       - "9001:9001"  # Console
@@ -73,12 +73,14 @@ services:
       - REDIS_PORT=6379
       - API_HOST=0.0.0.0
       - API_PORT=8000
-      - API_KEY=${API_KEY:-tenet-dev-key-change-in-production}
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+      - API_KEY=${API_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS}
     ports:
       - "8000:8000"
     depends_on:
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     volumes:
       - ./services/ingest:/app
@@ -98,10 +100,10 @@ services:
       - REDIS_PORT=6379
       - API_HOST=0.0.0.0
       - API_PORT=8100
-      - API_KEY=${API_KEY:-tenet-dev-key-change-in-production}
+      - API_KEY=${API_KEY}
       - MODEL_PATH=/app/models/trained
-      - PHISHING_THRESHOLD=0.85
-      - PROMPT_INJECTION_THRESHOLD=0.75
+      - PHISHING_THRESHOLD=${PHISHING_THRESHOLD:-0.85}
+      - PROMPT_INJECTION_THRESHOLD=${PROMPT_INJECTION_THRESHOLD:-0.75}
     ports:
       - "8100:8100"
     depends_on:

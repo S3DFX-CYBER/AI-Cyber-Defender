@@ -1,10 +1,10 @@
 """Tests for model artifact hardening and validation behavior."""
 
-import json
 import hashlib
+import json
+import sys
 import tempfile
 from pathlib import Path
-import sys
 
 import joblib
 
@@ -21,10 +21,10 @@ class DummyVectorizer:
 
 
 class DummyModel:
-    def predict(self, value):
+    def predict(self, _value):
         return [0]
 
-    def predict_proba(self, value):
+    def predict_proba(self, _value):
         return [[1.0, 0.0]]
 
 
@@ -97,9 +97,15 @@ def test_detector_rejects_incomplete_metadata_schema():
             json.dumps(
                 {
                     "artifacts": {
-                        "prompt_detector.joblib": hashlib.sha256(model_file.read_bytes()).hexdigest(),
-                        "vectorizer.joblib": hashlib.sha256(vectorizer_file.read_bytes()).hexdigest(),
-                        "metadata.json": hashlib.sha256((base / "metadata.json").read_bytes()).hexdigest(),
+                        "prompt_detector.joblib": hashlib.sha256(
+                            model_file.read_bytes()
+                        ).hexdigest(),
+                        "vectorizer.joblib": hashlib.sha256(
+                            vectorizer_file.read_bytes()
+                        ).hexdigest(),
+                        "metadata.json": hashlib.sha256(
+                            (base / "metadata.json").read_bytes()
+                        ).hexdigest(),
                     }
                 }
             ),

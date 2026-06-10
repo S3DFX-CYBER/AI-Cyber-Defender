@@ -10,8 +10,8 @@ import requests
 import google.generativeai as genai
 from github import Github, GithubException
 
-
 # ─── GitHub client ────────────────────────────────────────────────────────────
+
 
 def get_github_client() -> Github:
     """Create and return an authenticated GitHub client."""
@@ -33,11 +33,14 @@ def get_repo(g: Github):
 
 # ─── LLM client ───────────────────────────────────────────────────────────────
 
+
 def get_llm_client():
     """Configure Gemini and return a GenerativeModel instance."""
     api_key = os.environ.get("TENET_AI_KEY")
     if not api_key:
-        print("❌ TENET_AI_KEY secret is not set. Please add it in repo Settings → Secrets → Actions.")
+        print(
+            "❌ TENET_AI_KEY secret is not set. Please add it in repo Settings → Secrets → Actions."
+        )
         sys.exit(1)
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(
@@ -72,6 +75,7 @@ def call_llm(model, prompt: str) -> str | None:
 
 # ─── PR utilities ─────────────────────────────────────────────────────────────
 
+
 def get_pr_diff(repo_name: str, pr_number: int, token: str) -> str:
     """Fetch the unified diff for a PR via GitHub API."""
     url = f"https://api.github.com/repos/{repo_name}/pulls/{pr_number}"
@@ -102,6 +106,7 @@ def post_pr_comment(repo, pr_number: int, body: str) -> None:
 
 # ─── Issue utilities ──────────────────────────────────────────────────────────
 
+
 def post_issue_comment(repo, issue_number: int, body: str) -> None:
     """Post a comment on an issue."""
     issue = repo.get_issue(issue_number)
@@ -112,12 +117,27 @@ def post_issue_comment(repo, issue_number: int, body: str) -> None:
 def get_repo_structure(base_path: str = ".", max_files: int = 120) -> str:
     """Walk the repo and return a file tree string (excludes hidden dirs and common noise)."""
     skip_dirs = {
-        ".git", "__pycache__", "node_modules", ".venv",
-        "venv", "dist", "build", ".mypy_cache",
+        ".git",
+        "__pycache__",
+        "node_modules",
+        ".venv",
+        "venv",
+        "dist",
+        "build",
+        ".mypy_cache",
     }
     skip_exts = {
-        ".pyc", ".pyo", ".so", ".egg-info", ".lock", ".log",
-        ".png", ".jpg", ".jpeg", ".svg", ".ico",
+        ".pyc",
+        ".pyo",
+        ".so",
+        ".egg-info",
+        ".lock",
+        ".log",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".svg",
+        ".ico",
     }
     lines = []
     count = 0
@@ -186,11 +206,50 @@ def extract_keywords(text: str) -> list[str]:
     """Extract meaningful keywords from issue text."""
     text = re.sub(r"[`*#\[\]()>]+", " ", text)
     stop_words = {
-        "the", "a", "an", "is", "in", "on", "at", "to", "for", "of",
-        "and", "or", "but", "not", "with", "as", "it", "its", "this",
-        "that", "be", "was", "are", "have", "has", "do", "does", "i",
-        "we", "you", "should", "would", "could", "when", "how", "what",
-        "need", "want", "make", "add", "remove", "fix", "update", "change",
+        "the",
+        "a",
+        "an",
+        "is",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "of",
+        "and",
+        "or",
+        "but",
+        "not",
+        "with",
+        "as",
+        "it",
+        "its",
+        "this",
+        "that",
+        "be",
+        "was",
+        "are",
+        "have",
+        "has",
+        "do",
+        "does",
+        "i",
+        "we",
+        "you",
+        "should",
+        "would",
+        "could",
+        "when",
+        "how",
+        "what",
+        "need",
+        "want",
+        "make",
+        "add",
+        "remove",
+        "fix",
+        "update",
+        "change",
     }
     words = re.findall(r"[a-zA-Z_]\w+", text)
     return [w for w in words if w.lower() not in stop_words and len(w) > 2]
@@ -198,9 +257,10 @@ def extract_keywords(text: str) -> list[str]:
 
 # ─── Git helpers ──────────────────────────────────────────────────────────────
 
+
 def _validate_branch_name(name: str) -> bool:
     """Ensure branch name contains only safe characters."""
-    return bool(re.match(r'^[a-zA-Z0-9._/-]+$', name)) and '..' not in name
+    return bool(re.match(r"^[a-zA-Z0-9._/-]+$", name)) and ".." not in name
 
 
 def _validate_filepath(filepath: str, base_path: str = ".") -> bool:

@@ -11,6 +11,7 @@ Production hardening:
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -19,14 +20,20 @@ import time
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import redis.asyncio as redis
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import FastAPI
+from fastapi import Header
+from fastapi import HTTPException
+from fastapi import Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from pydantic import Field
 
 from services.security import SecurityManager
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+
+_background_tasks = set()
 
 
 class JSONFormatter(logging.Formatter):
@@ -55,7 +62,7 @@ logger = logging.getLogger(__name__)
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_TIMEOUT_S = float(os.getenv("REDIS_TIMEOUT_S", 2.0))
-API_HOST = os.getenv("API_HOST", "0.0.0.0")
+API_HOST = os.getenv("API_HOST", "0.0.0.0")  # nosec B104
 API_PORT = int(os.getenv("API_PORT", 8000))
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
@@ -135,7 +142,9 @@ class CircuitBreaker:
 
             if self._failure_count >= self.failure_threshold:
                 self._state = CircuitState.OPEN
-                logger.error("Circuit breaker [%s] -> OPEN (%s failures)", self.name, self._failure_count)
+                logger.error(
+                    "Circuit breaker [%s] -> OPEN (%s failures)", self.name, self._failure_count
+                )
 
 
 app = FastAPI(
@@ -152,7 +161,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-redis_client: Optional[redis.Redis] = None
+redis_client: redis.Redis | None = None
 redis_cb = CircuitBreaker("redis-ingest")
 _shutdown_event = asyncio.Event()
 _start_time = time.monotonic()
@@ -164,12 +173,16 @@ security = SecurityManager(
 
 
 class LLMEventRequest(BaseModel):
-    source_type: str = Field(..., description="chat | agent | api | workflow", min_length=1, max_length=64)
-    source_id: str = Field(..., description="Unique identifier for the source", min_length=1, max_length=128)
+    source_type: str = Field(
+        ..., description="chat | agent | api | workflow", min_length=1, max_length=64
+    )
+    source_id: str = Field(
+        ..., description="Unique identifier for the source", min_length=1, max_length=128
+    )
     model: str = Field(..., description="LLM model being used", min_length=1, max_length=128)
     prompt: str = Field(..., description="The prompt to analyze", min_length=1, max_length=10000)
-    system_prompt: Optional[str] = Field(None)
-    metadata: Optional[dict[str, Any]] = Field(default_factory=dict)
+    system_prompt: str | None = Field(None)
+    metadata: dict[str, Any] | None = Field(default_factory=dict)
 
 
 class LLMEventResponse(BaseModel):
@@ -199,8 +212,8 @@ class EventDetailResponse(BaseModel):
     source_id: str
     model: str
     prompt: str
-    system_prompt: Optional[str] = None
-    metadata: Optional[dict[str, Any]] = None
+    system_prompt: str | None = None
+    metadata: dict[str, Any] | None = None
     blocked: bool
     risk_score: float
     verdict: str
@@ -215,9 +228,9 @@ async def redis_call(coro):
         result = await asyncio.wait_for(coro, timeout=REDIS_TIMEOUT_S)
         await redis_cb.record_success()
         return result
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning("Redis call timed out after %ss", REDIS_TIMEOUT_S)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("Redis call failed: %s", exc)
 
     await redis_cb.record_failure()
@@ -239,17 +252,16 @@ async def startup() -> None:
         )
         await asyncio.wait_for(redis_client.ping(), timeout=REDIS_TIMEOUT_S)
         logger.info("Connected to Redis at %s:%s", REDIS_HOST, REDIS_PORT)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.error("Redis unavailable at startup (%s); running in degraded mode", exc)
         redis_client = None
-
-    asyncio.create_task(_redis_reconnect_loop())
+    task = asyncio.create_task(_redis_reconnect_loop())
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
     for sig in (signal.SIGTERM, signal.SIGINT):
-        try:
+        with contextlib.suppress(NotImplementedError):
             asyncio.get_running_loop().add_signal_handler(sig, _shutdown_event.set)
-        except NotImplementedError:
-            pass
 
 
 @app.on_event("shutdown")
@@ -260,8 +272,8 @@ async def shutdown() -> None:
     if redis_client:
         try:
             await redis_client.close()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to close Redis connection cleanly: {e}")
         logger.info("Redis connection closed")
 
 
@@ -286,7 +298,7 @@ async def _redis_reconnect_loop() -> None:
             await asyncio.wait_for(redis_client.ping(), timeout=REDIS_TIMEOUT_S)
             await redis_cb.record_success()
             logger.info("Redis reconnection probe succeeded")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.debug("Redis reconnection probe failed: %s", exc)
             await redis_cb.record_failure()
 
@@ -333,8 +345,18 @@ async def ingest_llm_event(request: LLMEventRequest, x_api_key: str = Header(...
 
     degraded = False
     if not blocked:
-        queued = await redis_call(redis_client.lpush("tenet:events:queue", json.dumps(event_payload))) if redis_client else None
-        stored = await redis_call(redis_client.set(f"tenet:event:{event_id}", json.dumps(event_payload), ex=86400)) if redis_client else None
+        queued = (
+            await redis_call(redis_client.lpush("tenet:events:queue", json.dumps(event_payload)))
+            if redis_client
+            else None
+        )
+        stored = (
+            await redis_call(
+                redis_client.set(f"tenet:event:{event_id}", json.dumps(event_payload), ex=86400)
+            )
+            if redis_client
+            else None
+        )
 
         if not queued or not stored:
             degraded = True
@@ -429,7 +451,9 @@ async def list_events(
     try:
         keys = await redis_call(redis_client.keys("tenet:event:*"))
         if keys is None:
-            raise HTTPException(status_code=503, detail="Service degraded - event store unavailable")
+            raise HTTPException(
+                status_code=503, detail="Service degraded - event store unavailable"
+            )
 
         events = []
         for key in keys:
@@ -449,7 +473,7 @@ async def list_events(
         }
     except HTTPException:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.error("Failed to list events: %s", exc)
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
@@ -474,7 +498,7 @@ async def get_event(event_id: str, x_api_key: str = Header(...)):
         return EventDetailResponse(**parsed)
     except HTTPException:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.error("Failed to retrieve event %s: %s", event_id, exc)
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
@@ -513,15 +537,14 @@ async def get_stats(x_api_key: str = Header(...)):
         }
     except HTTPException:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.error("Failed to get stats: %s", exc)
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
 @app.get("/v1/circuit-status")
 async def circuit_status(x_api_key: str = Header(...)):
-    auth = await security.require_auth(x_api_key, required_permission="read")
-
+    await security.require_auth(x_api_key, required_permission="read")
     return {
         "name": redis_cb.name,
         "state": redis_cb.state.value,
@@ -531,7 +554,9 @@ async def circuit_status(x_api_key: str = Header(...)):
 
 
 @app.get("/v1/audit/export")
-async def export_audit_logs(limit: int = Query(default=200, ge=1, le=2000), x_api_key: str = Header(...)):
+async def export_audit_logs(
+    limit: int = Query(default=200, ge=1, le=2000), x_api_key: str = Header(...)
+):
     auth = await security.require_auth(x_api_key, required_permission="admin")
     records = security.export_audit_records(auth.org_id, limit=limit)
     security.audit(

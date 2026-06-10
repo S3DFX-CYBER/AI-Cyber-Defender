@@ -1,12 +1,14 @@
 """
 Unit tests for the logging configuration utility module.
 """
+
 import logging
 import os
-import pytest
-from unittest.mock import patch
 import sys
 from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "services" / "utils"))
 
@@ -71,6 +73,7 @@ class TestSetupLogging:
     def test_logger_has_file_handler(self):
         """Test that a RotatingFileHandler is attached to the logger."""
         from logging.handlers import RotatingFileHandler
+
         logger = setup_logging("test_file_handler")
         handler_types = [type(h) for h in logger.handlers]
         assert RotatingFileHandler in handler_types
