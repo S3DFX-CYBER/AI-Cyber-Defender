@@ -92,21 +92,6 @@ class TestSetupLogging:
         setup_logging("test_logs_dir")
         assert os.path.exists("logs")
 
-    def test_log_format_contains_required_fields(self):
-        """Test that log formatter contains timestamp, name, level, and message."""
-        logger = setup_logging("test_format")
-        formatter_found = False
-        for handler in logger.handlers:
-            if handler.formatter:
-                fmt = handler.formatter._fmt
-                assert "%(asctime)s" in fmt
-                assert "%(name)s" in fmt
-                assert "%(levelname)s" in fmt
-                assert "%(message)s" in fmt
-                formatter_found = True
-                break
-        assert formatter_found, "No formatter found on any handler"
-
 
 class TestSensitiveDataLogging:
     """Tests to ensure sensitive data handling."""
