@@ -19,12 +19,12 @@ from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import joblib
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Add project root to sys.path to import services.utils
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from services.utils.logging_config import setup_logging
+
+logger = setup_logging(__name__)
 
 # Default paths
 DEFAULT_DATA_PATH = "./data/adversarial_prompts.json"
@@ -269,11 +269,9 @@ def train_model(
     accuracy = accuracy_score(y_test, y_pred)
     
     logger.info(f"Model Accuracy: {accuracy:.4f}")
-    logger.info("\nClassification Report:")
-    print(classification_report(y_test, y_pred, target_names=["benign", "malicious"]))
+    logger.info("\nClassification Report:\n" + classification_report(y_test, y_pred, target_names=["benign", "malicious"]))
     
-    logger.info("\nConfusion Matrix:")
-    print(confusion_matrix(y_test, y_pred))
+    logger.info("\nConfusion Matrix:\n" + str(confusion_matrix(y_test, y_pred)))
     
     # Cross-validation
     cv_scores = cross_val_score(model, vectorizer.transform(prompts), labels, cv=5)

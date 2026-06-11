@@ -22,9 +22,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 import joblib
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Add project root to sys.path to import services.utils
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+from services.utils.logging_config import setup_logging
+
+logger = setup_logging(__name__)
 
 # Default paths
 DEFAULT_MODEL_PATH = os.getenv("MODEL_PATH", "./models/trained")
@@ -458,17 +461,17 @@ if __name__ == "__main__":
         "Please help me with my code",
     ]
     
-    print("=" * 60)
-    print("TENET AI - Phishing Detector Test")
-    print("=" * 60)
-    print(f"ML Model Loaded: {detector.is_model_loaded}")
-    print()
+    logger.info("=" * 60)
+    logger.info("TENET AI - Phishing Detector Test")
+    logger.info("=" * 60)
+    logger.info(f"ML Model Loaded: {detector.is_model_loaded}")
+    logger.info("")
     
     for prompt in test_prompts:
         result = detector.detect(prompt)
         status = "🔴" if result.verdict == Verdict.MALICIOUS else (
             "🟡" if result.verdict == Verdict.SUSPICIOUS else "🟢"
         )
-        print(f"{status} [{result.verdict.value.upper():10}] ({result.risk_score:.2f}) {prompt[:50]}")
+        logger.info(f"{status} [{result.verdict.value.upper():10}] ({result.risk_score:.2f}) {prompt[:50]}")
     
-    print("=" * 60)
+    logger.info("=" * 60)

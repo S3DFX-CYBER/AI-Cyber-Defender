@@ -156,6 +156,24 @@ def detect_threat(
     return result
 ```
 
+### Logging Standards
+
+TENET AI uses structured JSON logging to improve observability in production. Ad-hoc `print()` statements are not allowed.
+
+- **Centralized Config**: Always use the centralized `setup_logging` utility:
+  ```python
+  from services.utils.logging_config import setup_logging
+  logger = setup_logging(__name__)
+  ```
+- **Correlation IDs**: The logging framework automatically handles request correlation IDs across services. Do not manually construct log messages with request identifiers.
+- **Severity Levels**:
+  - `DEBUG`: Development and diagnostic details.
+  - `INFO`: Normal operational events (e.g., service started, request completed).
+  - `WARNING`: Recoverable or unexpected situations (e.g., rate limit exceeded).
+  - `ERROR`: Failed operations (e.g., API call failed).
+  - `CRITICAL`: Severe failures affecting application availability (e.g., database connection lost).
+- **Sensitive Data**: Never log passwords, tokens, API keys, or raw secrets.
+
 ### Testing Standards
 
 - **Coverage**: Aim for 70%+ on new code
