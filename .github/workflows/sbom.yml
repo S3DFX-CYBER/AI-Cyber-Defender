@@ -16,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
-
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2 pinned SHA
+    
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38  # v5.4.0 pinned SHA
       with:
         python-version: '3.11'
     
@@ -27,7 +27,7 @@ jobs:
       run: python scripts/generate_sbom.py
     
     - name: Upload to Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@c062e08  # v2 pinned SHA
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
@@ -37,7 +37,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Upload as Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee5f79cf8c2  # v4.4.3 pinned SHA
       with:
         name: sbom
         path: |
