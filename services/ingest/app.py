@@ -23,6 +23,9 @@ from typing import Any, Optional
 
 import redis.asyncio as redis
 from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi.responses import StreamingResponse
+import csv
+import io
 
 from services.security import SecurityManager
 from fastapi.middleware.cors import CORSMiddleware
@@ -547,6 +550,89 @@ async def export_audit_logs(limit: int = Query(default=200, ge=1, le=2000), x_ap
         "format": "jsonl-compatible",
     }
 
+@app.get("/v1/export/csv")
+async def export_events_csv(
+    limit: int = Query(default=10000, ge=1, le=50000),
+    x_api_key: str = Header(...),
+):
+    auth = await security.require_auth(x_api_key, required_permission="read")
+
+    if redis_cb.state == CircuitState.OPEN or not redis_client:
+        raise HTTPException(status_code=503, detail="Service degraded - event store unavailable")
+
+    keys = await redis_call(redis_client.keys("tenet:event:*"))
+    if keys is None:
+        raise HTTPException(status_code=503, detail="Service degraded - event store unavailable")
+
+    events = []
+    for key in keys:
+        data = await redis_call(redis_client.get(key))
+        if data:
+            parsed = json.loads(data)
+            if parsed.get("org_id") == auth.org_id:
+                events.append(parsed)
+
+    events.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
+    events = events[:limit]
+
+    fieldnames = ["event_id", "timestamp", "source_type", "source_id", "model", "prompt", "verdict", "risk_score", "blocked"]
+
+    def generate():
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        yield buf.getvalue()
+        for event in events:
+            buf = io.StringIO()
+            writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writerow(event)
+            yield buf.getvalue()
+
+    filename = f"tenet_events_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    return StreamingResponse(
+        generate(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@app.get("/v1/export/json")
+async def export_events_json(
+    limit: int = Query(default=10000, ge=1, le=50000),
+    x_api_key: str = Header(...),
+):
+    auth = await security.require_auth(x_api_key, required_permission="read")
+
+    if redis_cb.state == CircuitState.OPEN or not redis_client:
+        raise HTTPException(status_code=503, detail="Service degraded - event store unavailable")
+
+    keys = await redis_call(redis_client.keys("tenet:event:*"))
+    if keys is None:
+        raise HTTPException(status_code=503, detail="Service degraded - event store unavailable")
+
+    events = []
+    for key in keys:
+        data = await redis_call(redis_client.get(key))
+        if data:
+            parsed = json.loads(data)
+            if parsed.get("org_id") == auth.org_id:
+                events.append(parsed)
+
+    events.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
+    events = events[:limit]
+
+    payload = json.dumps({
+        "exported_at": datetime.utcnow().isoformat(),
+        "count": len(events),
+        "events": events,
+    }, indent=2)
+
+    filename = f"tenet_events_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+    return StreamingResponse(
+        iter([payload]),
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 if __name__ == "__main__":
     import uvicorn

@@ -8,7 +8,8 @@ import {
   RefreshCw,
   Search,
   Lock,
-  Cpu
+  Cpu,
+  Download
 } from 'lucide-react';
 import axios from 'axios';
 import {
@@ -24,6 +25,7 @@ import {
   Cell
 } from 'recharts';
 import './index.css';
+import { exportEventsToCSV, exportEventsToJSON, exportEventsToPDF } from './utils/export';
 
 // --- Types ---
 interface SecurityEvent {
@@ -89,7 +91,7 @@ export default function App() {
   });
   const [loading, setLoading] = useState(false);
   const [health, setHealth] = useState({ ingest: false, analyzer: false });
-
+  const [searchQuery, setSearchQuery] = useState('');
   // Fetch real data (if backend is up)
   const fetchData = async () => {
     setLoading(true);
@@ -129,11 +131,26 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const avgRiskScore = events.length > 0
+    ? (events.reduce((sum, e) => sum + e.risk_score, 0) / events.length).toFixed(2)
+    : '0.00';
+
   const chartData = [
     { name: 'Malicious', value: stats.threat_distribution.malicious },
     { name: 'Suspicious', value: stats.threat_distribution.suspicious },
     { name: 'Benign', value: stats.threat_distribution.benign }
   ];
+
+  const filteredEvents = events.filter(e => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      e.prompt?.toLowerCase().includes(q) ||
+      e.source_id?.toLowerCase().includes(q) ||
+      e.source_type?.toLowerCase().includes(q) ||
+      e.model?.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="app-container">
@@ -179,9 +196,6 @@ export default function App() {
                 <h3>Threats Blocked</h3>
                 <div className="value">{stats.blocked_count}</div>
               </div>
-const avgRiskScore = events.length > 0
-  ? (events.reduce((sum, e) => sum + e.risk_score, 0) / events.length).toFixed(2)
-  : '0.00';
 
               <div className="stat-card warning">
                 <h3>Average Risk Score</h3>
@@ -197,7 +211,7 @@ const avgRiskScore = events.length > 0
                     <Pie
                       data={chartData}
                       innerRadius={60}
-                      outerRadius={80}
+                     outerRadius={80}
                       paddingAngle={5}
                       dataKey="value"
                     >
@@ -233,7 +247,35 @@ const avgRiskScore = events.length > 0
                 type="text"
                 placeholder="Search events, prompts, or sources..."
                 aria-label="Search events, prompts, or sources"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
+              <div className="export-buttons">
+                <button
+                  className="export-btn"
+                  onClick={() => exportEventsToCSV(filteredEvents, { search: searchQuery })}
+                  disabled={filteredEvents.length === 0}
+                  title="Export as CSV"
+                >
+                  <Download size={14} /> CSV
+                </button>
+                <button
+                  className="export-btn"
+                  onClick={() => exportEventsToJSON(filteredEvents, { search: searchQuery })}
+                  disabled={filteredEvents.length === 0}
+                  title="Export as JSON"
+                >
+                  <Download size={14} /> JSON
+                </button>
+                <button
+                  className="export-btn"
+                  onClick={() => exportEventsToPDF(filteredEvents, { search: searchQuery })}
+                  disabled={filteredEvents.length === 0}
+                  title="Export PDF report"
+                >
+                  <Download size={14} /> PDF
+                </button>
+              </div>
             </div>
             <table>
               <thead>
@@ -246,7 +288,7 @@ const avgRiskScore = events.length > 0
                 </tr>
               </thead>
               <tbody>
-                {events.map((event) => (
+                {filteredEvents.map((event) => (
                   <tr key={event.event_id}>
                     <td>
                       <span className={`verdict-badge ${event.verdict}`}>
@@ -321,6 +363,10 @@ const avgRiskScore = events.length > 0
         .chart-container { background: var(--card-bg); padding: 24px; border-radius: 12px; border: 1px solid var(--border); }
         .chart-container h3 { margin-bottom: 20px; font-size: 1rem; }
         .events-list { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .export-buttons { display: flex; gap: 8px; margin-left: auto; }
+        .export-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); background: transparent; transition: all 0.2s; }
+        .export-btn:hover:not(:disabled) { background: var(--border); color: var(--text-primary); }
+        .export-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .filter-bar { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: #18181b; }
         .filter-bar input { background: transparent; border: none; outline: none; color: var(--text-primary); flex: 1; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
