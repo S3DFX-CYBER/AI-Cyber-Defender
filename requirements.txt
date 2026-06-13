@@ -12,12 +12,12 @@ pydantic-settings>=2.14.1
 jinja2>=3.1.6  # CVE-2024-56326, CVE-2025-27516 fixes
 
 # HTTP Libraries (with security fixes)
-h11>=0.15.0  # CVE-2025-43859 fix
+h11>=0.16.0  # CVE-2025-43859 fix
 
 # ML & Data Science
 scikit-learn>=1.8.0
 numpy>=2.4.6
-pandas>=3.0.2
+pandas>=3.0.3
 joblib>=1.5.3
 
 # Data Processing
