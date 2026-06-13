@@ -564,29 +564,27 @@ async def export_events_csv(
     if keys is None:
         raise HTTPException(status_code=503, detail="Service degraded - event store unavailable")
 
-    events = []
+    fieldnames = ["event_id", "timestamp", "source_type", "source_id", "model", "prompt", "verdict", "risk_score", "blocked"]
+
+    async def generate():
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    yield buf.getvalue()
+
+    count = 0
     for key in keys:
+        if count >= limit:
+            break
         data = await redis_call(redis_client.get(key))
         if data:
             parsed = json.loads(data)
             if parsed.get("org_id") == auth.org_id:
-                events.append(parsed)
-
-    events.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
-    events = events[:limit]
-
-    fieldnames = ["event_id", "timestamp", "source_type", "source_id", "model", "prompt", "verdict", "risk_score", "blocked"]
-
-    def generate():
-        buf = io.StringIO()
-        writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
-        writer.writeheader()
-        yield buf.getvalue()
-        for event in events:
-            buf = io.StringIO()
-            writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
-            writer.writerow(event)
-            yield buf.getvalue()
+                buf.seek(0)
+                buf.truncate(0)
+                writer.writerow(parsed)
+                yield buf.getvalue()
+                count += 1
 
     filename = f"tenet_events_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
     return StreamingResponse(
@@ -610,26 +608,26 @@ async def export_events_json(
     if keys is None:
         raise HTTPException(status_code=503, detail="Service degraded - event store unavailable")
 
-    events = []
-    for key in keys:
-        data = await redis_call(redis_client.get(key))
-        if data:
-            parsed = json.loads(data)
-            if parsed.get("org_id") == auth.org_id:
-                events.append(parsed)
-
-    events.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
-    events = events[:limit]
-
-    payload = json.dumps({
-        "exported_at": datetime.utcnow().isoformat(),
-        "count": len(events),
-        "events": events,
-    }, indent=2)
+    async def generate():
+        yield f'{{"exported_at": "{datetime.utcnow().isoformat()}", "events": ['
+        count = 0
+        first = True
+        for key in keys:
+            if count >= limit:
+                break
+            data = await redis_call(redis_client.get(key))
+            if data:
+                parsed = json.loads(data)
+                if parsed.get("org_id") == auth.org_id:
+                    prefix = "" if first else ","
+                    yield f"{prefix}{json.dumps(parsed)}"
+                    first = False
+                    count += 1
+        yield f'], "count": {count}}}'
 
     filename = f"tenet_events_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
     return StreamingResponse(
-        iter([payload]),
+        generate(),
         media_type="application/json",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )

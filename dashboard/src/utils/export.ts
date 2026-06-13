@@ -34,7 +34,7 @@ function download(blob: Blob, filename: string) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
 function csvEscape(value: unknown): string {
@@ -135,7 +135,7 @@ export function exportEventsToPDF(events: SecurityEvent[], context?: ExportConte
       `${e.source_type}/${e.source_id}`,
       e.model,
       e.verdict,
-      e.risk_score.toFixed(2),
+      (typeof e.risk_score === 'number' && !isNaN(e.risk_score) ? e.risk_score.toFixed(2) : '0.00'),
       e.blocked ? 'Blocked' : 'Allowed',
     ]),
     theme: 'striped',
@@ -156,15 +156,4 @@ export function exportEventsToPDF(events: SecurityEvent[], context?: ExportConte
   doc.save(`tenet_soc_report_${buildSuffix(context)}.pdf`);
 }
 
-export async function exportEventsFromServer(format: 'csv' | 'json', apiKey: string) {
-  const url = `http://localhost:8000/v1/export/${format}?limit=10000`;
-  const res = await fetch(url, { headers: { 'X-API-Key': apiKey } });
-  if (!res.ok) throw new Error('Server export failed');
-  const blob = await res.blob();
-  const filename = `tenet_server_export_${new Date().toISOString().replace(/[:.]/g, '-')}.${format}`;
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
+
