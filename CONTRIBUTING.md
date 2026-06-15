@@ -319,5 +319,46 @@ Thank you for making TENET AI better! 🛡️
 
 ---
 
+## 🚀 Release Process
+
+TENET AI uses automated semantic versioning via [git-cliff](https://git-cliff.org/) and GitHub Actions.
+
+### How Releases Work
+
+1. All commits must follow [Conventional Commits](https://www.conventionalcommits.org/) format
+2. When a maintainer pushes a version tag, the release pipeline runs automatically
+3. Changelog is generated from commit messages
+4. GitHub Release is created with the changelog
+5. Docker image is published to GitHub Container Registry
+6. Python package published to PyPI for stable releases only — rc/beta/alpha tags skip PyPI
+
+### Version Tag Format
+v1.0.0         — stable release
+v1.0.0-rc.1    — release candidate
+v1.0.0-beta.1  — beta release
+v1.0.0-alpha.1 — alpha release
+
+### Commit Types and Their Effect
+
+| Commit Type | Example | Version Bump |
+|-------------|---------|--------------|
+| `feat:` | `feat: add new detector` | Minor (1.x.0) |
+| `fix:` | `fix: resolve false positive` | Patch (1.0.x) |
+| `feat!:` | `feat!: breaking API change` | Major (x.0.0) |
+| `docs:` | `docs: update README` | No bump |
+| `chore:` | `chore: update deps` | No bump |
+| `perf:` | `perf: optimize detection` | No bump |
+| `refactor:` | `refactor: clean up analyzer` | No bump |
+| `test:` | `test: add unit tests` | No bump |
+| `security:` | `security: patch vulnerability` | No bump |
+
+### Creating a Release (Maintainers Only)
+```bash
+# Create and push a version tag
+git tag v1.2.3
+git push origin v1.2.3
+# The release workflow runs automatically
+```
+
 **Last Updated**: January 2026
 **Version**: 1.0

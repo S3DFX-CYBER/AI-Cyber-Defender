@@ -25,6 +25,8 @@ import redis.asyncio as redis
 from fastapi import FastAPI, Header, HTTPException, Query
 
 from services.security import SecurityManager
+from services.utils.metrics import PrometheusMiddleware, increment_detection
+from prometheus_client import make_asgi_app
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -144,6 +146,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
+app.add_middleware(PrometheusMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
@@ -151,6 +154,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount Prometheus metrics endpoint
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 redis_client: Optional[redis.Redis] = None
 redis_cb = CircuitBreaker("redis-ingest")
@@ -313,7 +320,9 @@ async def ingest_llm_event(request: LLMEventRequest, x_api_key: str = Header(...
 
     event_id = str(uuid.uuid4())
     timestamp = datetime.utcnow().isoformat()
-    blocked, risk_score, verdict = quick_heuristic_check(request.prompt)
+    blocked, risk_score, verdict, threat_type = quick_heuristic_check(request.prompt)
+    
+    increment_detection(service="ingest", threat_type=threat_type, verdict=verdict)
 
     event_payload = {
         "event_id": event_id,
@@ -358,7 +367,7 @@ async def ingest_llm_event(request: LLMEventRequest, x_api_key: str = Header(...
     )
 
 
-def quick_heuristic_check(prompt: str) -> tuple[bool, float, str]:
+def quick_heuristic_check(prompt: str) -> tuple[bool, float, str, str]:
     prompt_lower = prompt.lower()
 
     injection_patterns = [
@@ -402,17 +411,17 @@ def quick_heuristic_check(prompt: str) -> tuple[bool, float, str]:
 
     for pattern in injection_patterns:
         if pattern in prompt_lower:
-            return True, 0.95, "malicious"
+            return True, 0.95, "malicious", "prompt_injection"
 
     for pattern in jailbreak_patterns:
         if pattern in prompt_lower:
-            return True, 0.90, "malicious"
+            return True, 0.90, "malicious", "jailbreak"
 
     for pattern in extraction_patterns:
         if pattern in prompt_lower:
-            return False, 0.75, "suspicious"
+            return False, 0.75, "suspicious", "data_extraction"
 
-    return False, 0.0, "benign"
+    return False, 0.0, "benign", "none"
 
 
 @app.get("/v1/events")

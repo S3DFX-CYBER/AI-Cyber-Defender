@@ -51,7 +51,7 @@ class TestHeuristicDetection:
         ]
         
         for prompt in malicious_prompts:
-            blocked, risk_score, verdict = quick_heuristic_check(prompt)
+            blocked, risk_score, verdict, threat_type = quick_heuristic_check(prompt)
             assert blocked is True, f"Should block: {prompt}"
             assert risk_score > 0.8, f"Risk score should be high for: {prompt}"
             assert verdict == "malicious"
@@ -66,7 +66,7 @@ class TestHeuristicDetection:
         ]
         
         for prompt in jailbreak_prompts:
-            blocked, risk_score, verdict = quick_heuristic_check(prompt)
+            blocked, risk_score, verdict, threat_type = quick_heuristic_check(prompt)
             assert blocked is True, f"Should block: {prompt}"
             assert risk_score >= 0.8
     
@@ -79,7 +79,7 @@ class TestHeuristicDetection:
         ]
         
         for prompt in extraction_prompts:
-            blocked, risk_score, verdict = quick_heuristic_check(prompt)
+            blocked, risk_score, verdict, threat_type = quick_heuristic_check(prompt)
             # These should be flagged (suspicious) but not blocked
             assert verdict == "suspicious", f"Should flag as suspicious: {prompt}"
             assert 0.5 < risk_score < 0.9
@@ -95,7 +95,7 @@ class TestHeuristicDetection:
         ]
         
         for prompt in benign_prompts:
-            blocked, risk_score, verdict = quick_heuristic_check(prompt)
+            blocked, risk_score, verdict, threat_type = quick_heuristic_check(prompt)
             assert blocked is False, f"Should not block: {prompt}"
             assert risk_score == 0.0
             assert verdict == "benign"
