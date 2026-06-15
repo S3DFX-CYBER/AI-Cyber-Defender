@@ -36,3 +36,4 @@ python-dotenv>=1.2.2
 
 # Utilities
 python-dateutil>=2.8.2
+prometheus-client>=0.20.0
