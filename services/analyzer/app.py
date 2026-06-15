@@ -24,6 +24,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from services.utils.logging_config import setup_logging
 from services.security import SecurityManager
+from services.utils.metrics import PrometheusMiddleware, increment_detection
+from prometheus_client import make_asgi_app
 logger = setup_logging(__name__)
 
 # Environment configuration
@@ -45,6 +47,7 @@ app = FastAPI(
 # CORS middleware - configurable origins for security
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "https://localhost:3000,https://localhost:5173")
 allowed_origins = [origin.strip() for origin in CORS_ALLOWED_ORIGINS.split(",")]
+app.add_middleware(PrometheusMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -52,6 +55,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount Prometheus metrics endpoint
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 # Global state
 redis_client: Optional[redis.Redis] = None
@@ -202,6 +209,9 @@ async def analyze_prompt(
     auth = await security.require_auth(x_api_key, required_permission="analyze")
     prompt = request.prompt
     result = run_analysis(prompt)
+    
+    increment_detection(service="analyzer", threat_type=result.threat_type, verdict=result.verdict)
+    
     security.audit(
         action="analyze_prompt",
         result=result.verdict,
@@ -455,6 +465,8 @@ async def _process_single_event(event_json: str):
     
     # Analyze the prompt
     result = run_analysis(prompt)
+    
+    increment_detection(service="analyzer_bg", threat_type=result.threat_type, verdict=result.verdict)
     
     # Update and store event
     await _update_and_store_event(event, event_id, result)
