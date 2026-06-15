@@ -13,16 +13,16 @@ faker>=40.21.0
 
 # Code Quality
 black>=24.3.0
-ruff>=0.1.6
+ruff>=0.15.17
 mypy>=2.1.0
-isort>=5.12.0
+isort>=8.0.1
 
 # Security Scanning
 bandit>=1.9.4
 safety>=3.0.0  # Updated for latest vulnerability database
 
 # Development Tools
-ipython>=8.18.1
+ipython>=9.14.1
 watchdog>=6.0.0
 
 # Type Stubs
