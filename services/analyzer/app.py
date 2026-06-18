@@ -3,6 +3,7 @@ TENET AI - Analyzer Service
 ML-based threat detection engine for LLM prompts.
 """
 import os
+import re
 import json
 import asyncio
 import sys
@@ -237,14 +238,58 @@ def detect_language(prompt: str) -> Optional[str]:
 
     Returns:
         ISO 639-1 language code (e.g. 'en', 'es', 'fr') or None if detection fails.
+        Note: langdetect may return sub-codes like 'zh-cn'; these are normalized to
+        the primary tag (e.g. 'zh') to conform to the ISO 639-1 contract.
     """
     if _langdetect_detect is None:
         return None
     try:
-        return _langdetect_detect(prompt)
+        detected = _langdetect_detect(prompt)
+        if not detected:
+            return None
+        # Normalize sub-tags (e.g. 'zh-cn', 'zh-tw') → primary ISO 639-1 code ('zh')
+        return detected.split("-", 1)[0].lower()
     except LangDetectException:
         logger.debug("Language detection failed for prompt (too short or ambiguous)")
         return None
+
+
+def _pattern_match(pattern: str, text: str) -> bool:
+    """Match a pattern in text with word-boundary enforcement.
+
+    Patterns that start or end on a word character are wrapped with ``\\b``
+    anchors so that a short pattern like ``'tu es dan'`` does not falsely
+    match ``'tu es dans quel pays'`` or ``'du bist dankbar'``.
+
+    Patterns that begin/end with non-word characters (e.g. ``'</s>'``,
+    ``'<|system|>'``) fall back to plain substring matching because regex
+    word-boundaries are meaningless at non-word edges.
+
+    Args:
+        pattern: The (already lowercased) pattern string to look for.
+        text: The (already lowercased) prompt text to search in.
+
+    Returns:
+        True if the pattern is found in text respecting word boundaries.
+    """
+    if not pattern:
+        return False
+        
+    # CJK languages don't use spaces for word boundaries, so regex \b fails
+    # on partial matches. For CJK, plain substring matching is accurate enough.
+    if re.search(r'[\u4e00-\u9fff]', pattern):
+        return pattern in text
+
+    starts_word = bool(re.match(r'^\w', pattern))
+    ends_word = bool(re.search(r'\w$', pattern))
+    if starts_word or ends_word:
+        prefix = r'\b' if starts_word else ''
+        suffix = r'\b' if ends_word else ''
+        try:
+            return bool(re.search(prefix + re.escape(pattern) + suffix, text))
+        except re.error:
+            pass
+    return pattern in text
 
 
 def run_analysis(prompt: str) -> AnalysisResponse:
@@ -443,7 +488,7 @@ def heuristic_analysis(prompt: str) -> dict:
 
     for category, category_patterns in patterns.items():
         for pattern, score in category_patterns.items():
-            if pattern in prompt_lower:
+            if _pattern_match(pattern, prompt_lower):
                 matched_patterns.append(pattern)
                 if score > max_score:
                     max_score = score
