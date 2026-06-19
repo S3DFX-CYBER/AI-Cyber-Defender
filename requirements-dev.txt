@@ -13,7 +13,7 @@ faker>=40.21.0
 
 # Code Quality
 black>=24.3.0
-ruff>=0.15.17
+ruff>=0.15.18
 mypy>=2.1.0
 isort>=8.0.1
 
