@@ -1,59 +1,45 @@
-import React from 'react';
-import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import StatsSection from './components/StatsSection';
-import UnifiedArchitectureSection from './components/UnifiedArchitectureSection';
-import FeaturesSection from './components/FeaturesSection';
-import DemoSection from './components/DemoSection';
-import ComparisonTable from './components/ComparisonTable';
-import BreachCards from './components/BreachCards';
-import InstallSection from './components/InstallSection';
-import CtaSection from './components/CtaSection';
-import Footer from './components/Footer';
+import { lazy, Suspense } from 'react';
 
-export default function App() {
+// Keep only the Navbar (if present) as a normal import – it's critical above the fold
+import Navbar from './components/Navbar';   // if you have one, otherwise skip
+
+// Lazy-load all other components (list all that are imported)
+const Hero = lazy(() => import('./components/Hero'));
+const FeaturesSection = lazy(() => import('./components/FeaturesSection'));
+const StatsSection = lazy(() => import('./components/StatsSection'));
+const CtaSection = lazy(() => import('./components/CtaSection'));
+const BreachCards = lazy(() => import('./components/BreachCards'));
+const ComparisonTable = lazy(() => import('./components/ComparisonTable'));
+const DemoSection = lazy(() => import('./components/DemoSection'));
+const Footer = lazy(() => import('./components/Footer'));
+const InstallSection = lazy(() => import('./components/InstallSection'));
+const InteractivePieChart = lazy(() => import('./components/InteractivePieChart'));
+const TenetLogo = lazy(() => import('./components/TenetLogo'));
+const TerminalPanel = lazy(() => import('./components/TerminalPanel'));
+const UnifiedArchitectureSection = lazy(() => import('./components/UnifiedArchitectureSection'));
+
+function App() {
   return (
-    <div className="page">
-      {/* Accessibility Skip Link */}
-      <a href="#main-content" className="skip-to-main">
-        Skip to main content
-      </a>
-
-      {/* Global Navigation Header */}
+    <>
+      {/* Navbar stays outside Suspense for fast first paint */}
       <Navbar />
-
-      {/* Main Content Sections */}
-      <main id="main-content" className="main" tabIndex={-1}>
-        {/* Section 1: Hero Area + Real-Time Security Log Terminal */}
+      
+      <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>Loading...</div>}>
         <Hero />
-
-        {/* Section 2: Core Metrics & Counter Animation Strip */}
-        <StatsSection />
-
-        {/* Section 3: Threat Mitigation Pipeline Flow & Architecture */}
-        <UnifiedArchitectureSection />
-
-        {/* Section 4: Deep Security Feature Cards Matrix */}
         <FeaturesSection />
-
-        {/* Section 5: Real-Time Interactive Attack Sandbox */}
-        <DemoSection />
-
-        {/* Section 6: Standard Filter Capability Comparison */}
-        <ComparisonTable />
-
-        {/* Section 7: Severity Incident Timelines & Interactive Case Studies */}
-        <BreachCards />
-
-        {/* Section 8: Installation Configurations */}
-        <InstallSection />
-
-        {/* Section 9: Call-To-Action (CTAs) */}
+        <StatsSection />
         <CtaSection />
-      </main>
-
-      {/* Global Footer navigation & Back To Top */}
-      <Footer />
-    </div>
+        <BreachCards />
+        <ComparisonTable />
+        <DemoSection />
+        <Footer />
+        <InstallSection />
+        <InteractivePieChart />
+        <TenetLogo />
+        <TerminalPanel />
+        <UnifiedArchitectureSection />
+      </Suspense>
+    </>
   );
 }
+export default App;
