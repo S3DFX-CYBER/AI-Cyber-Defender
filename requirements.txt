@@ -2,7 +2,7 @@
 # Updated 2026-01-26 - Security patches applied
 
 # Core Framework (with security fixes)
-fastapi>=0.115.0
+fastapi>=0.137.2
 uvicorn[standard]>=0.46.0
 starlette>=1.2.1  # CVE-2024-47874 fix
 pydantic>=2.13.4
@@ -16,7 +16,7 @@ h11>=0.16.0  # CVE-2025-43859 fix
 
 # ML & Data Science
 scikit-learn>=1.8.0
-numpy>=2.4.6
+numpy>=2.5.0
 pandas>=3.0.3
 joblib>=1.5.3
 
@@ -29,7 +29,7 @@ psycopg2-binary>=2.9.12
 
 # HTTP & APIs
 httpx>=0.28.1
-requests>=2.33.1
+requests>=2.34.2
 
 # Security
 python-dotenv>=1.2.2
