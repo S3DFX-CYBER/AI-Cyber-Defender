@@ -35,4 +35,5 @@ requests>=2.34.2
 python-dotenv>=1.2.2
 
 # Utilities
-python-dateutil>=2.8.2"# fix: numpy version" 
+python-dateutil>=2.8.2
+# fix: numpy version - already updated
