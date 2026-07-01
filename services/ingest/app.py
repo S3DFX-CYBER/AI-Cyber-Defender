@@ -20,7 +20,7 @@ import time
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Any,Optional
+from typing import Any
 
 import redis.asyncio as redis
 from fastapi import FastAPI
@@ -28,16 +28,15 @@ from fastapi import Header
 from fastapi import HTTPException
 from fastapi import Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel,Field
+from prometheus_client import make_asgi_app
+from pydantic import BaseModel
+from pydantic import Field
 
 from services.security import SecurityManager
+from services.utils.metrics import PrometheusMiddleware
+from services.utils.metrics import increment_detection
 
 _background_tasks = set()
-from services.utils.metrics import PrometheusMiddleware, increment_detection
-from prometheus_client import make_asgi_app
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-
 
 class JSONFormatter(logging.Formatter):
     """Emit logs in structured JSON format."""
@@ -169,7 +168,7 @@ app.add_middleware(
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
-redis_client: Optional[redis.Redis] = None
+redis_client: redis.Redis | None = None
 redis_cb = CircuitBreaker("redis-ingest")
 _shutdown_event = asyncio.Event()
 _start_time = time.monotonic()
@@ -334,7 +333,7 @@ async def ingest_llm_event(request: LLMEventRequest, x_api_key: str = Header(...
     event_id = str(uuid.uuid4())
     timestamp = datetime.utcnow().isoformat()
     blocked, risk_score, verdict, threat_type = quick_heuristic_check(request.prompt)
-    
+
     increment_detection(service="ingest", threat_type=threat_type, verdict=verdict)
 
     event_payload = {

@@ -6,7 +6,7 @@ plugin that intercepts LLM requests before they reach the model.
 """
 
 import time
-from typing import Any, Dict
+from typing import Any
 
 from tenet_plugin import TenetSecurityPlugin
 
@@ -22,7 +22,7 @@ class DemoLLM:
 
 def secure_llm_call(
     plugin: TenetSecurityPlugin, prompt: str, model: str = "gpt-4"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Guard and execute a model call with TENET security checks."""
     print("\n[Plugin] Intercepted prompt:", repr(prompt[:50] + "..."))
     result = plugin.secure_call(

@@ -10,16 +10,15 @@ import os
 import re
 import sys
 
-from utils import (
-    get_github_client,
-    get_repo,
-    get_llm_client,
-    call_llm,
-    get_pr_diff,
-    truncate_diff,
-    post_pr_comment,
-)
-from prompts import PR_REVIEW_SYSTEM, PR_REVIEW_TEMPLATE
+from prompts import PR_REVIEW_SYSTEM
+from prompts import PR_REVIEW_TEMPLATE
+from utils import call_llm
+from utils import get_github_client
+from utils import get_llm_client
+from utils import get_pr_diff
+from utils import get_repo
+from utils import post_pr_comment
+from utils import truncate_diff
 
 
 def main():
@@ -54,7 +53,7 @@ def main():
         sys.exit(1)
 
     if not diff.strip():
-        print("ℹ️  PR has no diff (empty). Skipping review.")
+        print("[INFO] PR has no diff (empty). Skipping review.")
         sys.exit(0)
 
     diff = truncate_diff(diff, max_chars=80_000)

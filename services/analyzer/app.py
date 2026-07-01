@@ -27,11 +27,13 @@ except ImportError:
 # Configure logging
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from prometheus_client import make_asgi_app
+
 from services.security import SecurityManager
 from services.utils.logging_config import setup_logging
+from services.utils.metrics import PrometheusMiddleware
+from services.utils.metrics import increment_detection
 
-from services.utils.metrics import PrometheusMiddleware, increment_detection
-from prometheus_client import make_asgi_app
 logger = setup_logging(__name__)
 
 # Environment configuration
@@ -320,9 +322,9 @@ async def analyze_prompt(
     auth = await security.require_auth(x_api_key, required_permission="analyze")
     prompt = request.prompt
     result = run_analysis(prompt)
-    
+
     increment_detection(service="analyzer", threat_type=result.threat_type, verdict=result.verdict)
-    
+
     security.audit(
         action="analyze_prompt",
         result=result.verdict,
@@ -723,9 +725,9 @@ async def _process_single_event(event_json: str):
 
     # Analyze the prompt
     result = run_analysis(prompt)
-    
+
     increment_detection(service="analyzer_bg", threat_type=result.threat_type, verdict=result.verdict)
-    
+
     # Update and store event
     await _update_and_store_event(event, event_id, result)
 

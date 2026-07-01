@@ -1,8 +1,12 @@
 import time
-from typing import Callable, Awaitable
-from fastapi import Request, Response
+from collections.abc import Awaitable
+from collections.abc import Callable
+
+from fastapi import Request
+from fastapi import Response
+from prometheus_client import Counter
+from prometheus_client import Histogram
 from starlette.middleware.base import BaseHTTPMiddleware
-from prometheus_client import Counter, Histogram, REGISTRY
 
 # Define standard request metrics
 REQUEST_COUNT = Counter(
@@ -35,25 +39,25 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
     """Middleware to collect basic HTTP metrics."""
     async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         start_time = time.time()
-        
+
         method = request.method
         try:
             response = await call_next(request)
             status_code = str(response.status_code)
-            
+
             route = request.scope.get("route")
             endpoint = route.path if route else request.url.path
-            
+
             REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=status_code).inc()
             REQUEST_LATENCY.labels(method=method, endpoint=endpoint).observe(time.time() - start_time)
-            
+
             return response
         except Exception:
             # If an unhandled exception occurs, assume 500 status code
             status_code = "500"
             route = request.scope.get("route")
             endpoint = route.path if route else request.url.path
-            
+
             REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=status_code).inc()
             REQUEST_LATENCY.labels(method=method, endpoint=endpoint).observe(time.time() - start_time)
             raise

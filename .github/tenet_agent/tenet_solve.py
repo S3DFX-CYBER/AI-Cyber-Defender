@@ -12,29 +12,24 @@ Flow:
   7. Posts a summary comment on the original issue
 """
 
+import json
 import os
 import re
 import sys
-import json
 from pathlib import Path
 
 from github import GithubException
-
-from utils import (
-    get_github_client,
-    get_repo,
-    get_llm_client,
-    call_llm,
-    get_repo_structure,
-    read_relevant_files,
-    post_issue_comment,
-    create_branch_and_commit,
-)
-from prompts import (
-    ISSUE_SOLVER_ANALYSIS_TEMPLATE,
-    ISSUE_SOLVER_CODE_TEMPLATE,
-    ISSUE_SOLVER_PR_BODY_TEMPLATE,
-)
+from prompts import ISSUE_SOLVER_ANALYSIS_TEMPLATE
+from prompts import ISSUE_SOLVER_CODE_TEMPLATE
+from prompts import ISSUE_SOLVER_PR_BODY_TEMPLATE
+from utils import call_llm
+from utils import create_branch_and_commit
+from utils import get_github_client
+from utils import get_llm_client
+from utils import get_repo
+from utils import get_repo_structure
+from utils import post_issue_comment
+from utils import read_relevant_files
 
 # Allowed source file extensions for LLM-proposed paths
 _ALLOWED_EXTENSIONS = {
@@ -234,7 +229,7 @@ def main():
             f"---\n*TENET Agent 🛡️*"
         )
         post_issue_comment(repo, issue_number, comment)
-        print("ℹ️  Agent flagged CANNOT_FIX. Commented on issue and exiting.")
+        print("[INFO]  Agent flagged CANNOT_FIX. Commented on issue and exiting.")
         sys.exit(0)
 
     if not file_changes:

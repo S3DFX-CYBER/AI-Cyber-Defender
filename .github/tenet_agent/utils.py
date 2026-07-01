@@ -6,9 +6,10 @@ Handles GitHub API interactions, permission checks, and LLM client setup.
 import os
 import re
 import sys
-import requests
+
 import google.generativeai as genai
-from github import Github, GithubException
+import requests
+from github import Github
 
 # ─── GitHub client ────────────────────────────────────────────────────────────
 
@@ -185,7 +186,7 @@ def read_relevant_files(issue_title: str, issue_body: str, max_total_chars: int 
     total_chars = 0
     for _, fpath in candidate_files[:30]:
         try:
-            with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+            with open(fpath, encoding="utf-8", errors="ignore") as f:
                 content = f.read()
             if total_chars + len(content) > max_total_chars:
                 remaining = max_total_chars - total_chars
