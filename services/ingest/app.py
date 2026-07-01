@@ -38,6 +38,7 @@ from services.utils.metrics import increment_detection
 
 _background_tasks = set()
 
+
 class JSONFormatter(logging.Formatter):
     """Emit logs in structured JSON format."""
 

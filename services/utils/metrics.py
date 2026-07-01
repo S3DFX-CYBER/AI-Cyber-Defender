@@ -10,23 +10,20 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 # Define standard request metrics
 REQUEST_COUNT = Counter(
-    "http_requests_total",
-    "Total HTTP requests",
-    ["method", "endpoint", "status"]
+    "http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"]
 )
 
 REQUEST_LATENCY = Histogram(
-    "http_request_duration_seconds",
-    "HTTP request latency",
-    ["method", "endpoint"]
+    "http_request_duration_seconds", "HTTP request latency", ["method", "endpoint"]
 )
 
 # Define detection specific metrics
 DETECTION_COUNT = Counter(
     "tenet_detections_total",
     "Total threats detected by type and verdict",
-    ["service", "threat_type", "verdict"]
+    ["service", "threat_type", "verdict"],
 )
+
 
 def increment_detection(service: str, threat_type: str, verdict: str) -> None:
     """Helper to increment detection counters."""
@@ -37,7 +34,10 @@ def increment_detection(service: str, threat_type: str, verdict: str) -> None:
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
     """Middleware to collect basic HTTP metrics."""
-    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         start_time = time.time()
 
         method = request.method
@@ -49,7 +49,9 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             endpoint = route.path if route else request.url.path
 
             REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=status_code).inc()
-            REQUEST_LATENCY.labels(method=method, endpoint=endpoint).observe(time.time() - start_time)
+            REQUEST_LATENCY.labels(method=method, endpoint=endpoint).observe(
+                time.time() - start_time
+            )
 
             return response
         except Exception:
@@ -59,5 +61,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             endpoint = route.path if route else request.url.path
 
             REQUEST_COUNT.labels(method=method, endpoint=endpoint, status=status_code).inc()
-            REQUEST_LATENCY.labels(method=method, endpoint=endpoint).observe(time.time() - start_time)
+            REQUEST_LATENCY.labels(method=method, endpoint=endpoint).observe(
+                time.time() - start_time
+            )
             raise
