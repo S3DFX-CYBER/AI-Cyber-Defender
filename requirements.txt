@@ -16,7 +16,7 @@ h11>=0.16.0  # CVE-2025-43859 fix
 
 # ML & Data Science
 scikit-learn>=1.8.0
-numpy>=2.4.6
+numpy>=2.5.0
 pandas>=3.0.3
 joblib>=1.5.3
 
