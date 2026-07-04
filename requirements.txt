@@ -35,5 +35,5 @@ requests>=2.34.2
 python-dotenv>=1.2.2
 
 # Utilities
-python-dateutil>=2.8.2
+python-dateutil>=2.9.0.post0
 prometheus-client>=0.20.0
