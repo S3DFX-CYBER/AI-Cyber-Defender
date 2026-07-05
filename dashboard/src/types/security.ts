@@ -1,0 +1,46 @@
+export type Verdict = 'benign' | 'suspicious' | 'malicious';
+
+export interface SecurityEvent {
+  event_id: string;
+  timestamp: string;
+  source_type: string;
+  source_id: string;
+  model: string;
+  prompt: string;
+  verdict: Verdict;
+  risk_score: number;
+  blocked: boolean;
+  threat_type?: string;
+}
+
+export interface Stats {
+  total_events: number;
+  blocked_count: number;
+  threat_distribution: { malicious: number; suspicious: number; benign: number };
+}
+
+export interface FilterState {
+  search: string;
+  verdict: string;
+  status: string;
+  sourceIP: string;
+  detectionType: string;
+  threatType: string;
+  dateFrom: string;
+  dateTo: string;
+  dayOfWeek: string;
+  hourFrom: string;
+  hourTo: string;
+}
+
+export type TimeRange = 'hourly' | 'daily' | 'weekly';
+
+export interface ChartFilterAction {
+  verdict?: string;
+  threatType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  dayOfWeek?: string;
+  hourFrom?: string;
+  hourTo?: string;
+}

@@ -240,6 +240,24 @@ tenet:alerts
 * Analysis Timestamp
 
 ---
+## API Documentation & Deployment
+
+The Analyzer Service includes auto-generated, interactive OpenAPI (Swagger) documentation. 
+
+### Accessing the Docs
+Once the application is running, you can access the self-documenting API interface at:
+* **Swagger UI:** `http://localhost:8100/docs`
+* **ReDoc:** `http://localhost:8100/redoc`
+* **OpenAPI Schema:** `http://localhost:8100/openapi.json`
+
+### Authentication in Swagger UI
+1. Navigate to `/docs`.
+2. Click the **Authorize** button (padlock icon).
+3. Enter your API key in the `x-api-key` field and click **Authorize**.
+4. You can now use the "Try it out" feature on protected endpoints like `/v1/analyze`.
+
+### Deployment via GitHub Pages
+The static OpenAPI documentation is automatically extracted and published via GitHub Actions on every push to the `main` branch. The live API reference is hosted on the repository's configured GitHub Pages URL.
 
 ## Local Development
 

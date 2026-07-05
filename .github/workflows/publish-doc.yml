@@ -1,0 +1,102 @@
+name: Publish API Docs
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy-docs:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.3
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate OpenAPI JSON schemas
+        run: |
+          mkdir -p public/analyzer public/ingest
+          
+          # Set mock env vars so the FastAPI instances can initialize without a real Redis server
+          export REDIS_HOST=localhost
+          
+          # Extract Ingest schema
+          python -c "import json; from services.ingest.app import app; print(json.dumps(app.openapi()))" > public/ingest/openapi.json
+          
+          # Extract Analyzer schema
+          python -c "import json; from services.analyzer.app import app; print(json.dumps(app.openapi()))" > public/analyzer/openapi.json
+
+      - name: Create Landing Page
+        run: |
+          cat << 'EOF' > public/index.html
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>TENET AI API Documentation</title>
+              <style>
+                  body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; }
+                  h1 { color: #111; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+                  .card { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px; background: #fafafa; }
+                  a { color: #0066cc; text-decoration: none; font-weight: bold; }
+                  a:hover { text-decoration: underline; }
+              </style>
+          </head>
+          <body>
+              <h1>TENET AI API Documentation</h1>
+              <p>Welcome to the auto-generated API references for the TENET AI security pipeline.</p>
+              
+              <div class="card">
+                  <h2>🛡️ Ingest Service</h2>
+                  <p>Middleware layer for intercepting, validating, and processing LLM requests.</p>
+                  <p><a id="ingest-link" href="#">View Interactive Swagger Docs ➔</a></p>
+                  <p><small>Raw schema: <a href="ingest/openapi.json">openapi.json</a></small></p>
+              </div>
+
+              <div class="card">
+                  <h2>🧠 Analyzer Service</h2>
+                  <p>ML-based threat detection engine for classifying prompts.</p>
+                  <p><a id="analyzer-link" href="#">View Interactive Swagger Docs ➔</a></p>
+                  <p><small>Raw schema: <a href="analyzer/openapi.json">openapi.json</a></small></p>
+              </div>
+
+              <script>
+                  // Dynamically construct the Swagger UI links using the current window location
+                  document.addEventListener("DOMContentLoaded", function() {
+                      const baseUrl = window.location.href.split('?')[0].replace(/\/$/, "");
+                      document.getElementById('ingest-link').href = "https://petstore.swagger.io/?url=" + baseUrl + "/ingest/openapi.json";
+                      document.getElementById('analyzer-link').href = "https://petstore.swagger.io/?url=" + baseUrl + "/analyzer/openapi.json";
+                  });
+              </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6.0.0
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: 'public'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5.0.0
