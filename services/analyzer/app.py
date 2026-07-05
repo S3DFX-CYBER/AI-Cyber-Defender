@@ -12,9 +12,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
+from fastapi import FastAPI, HTTPException, Header, Security
+from fastapi.security import APIKeyHeader
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 import redis.asyncio as redis
-from fastapi import FastAPI
-from fastapi import Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pydantic import Field
@@ -52,6 +54,13 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# API Key Security Scheme for OpenAPI Docs
+api_key_scheme = APIKeyHeader(
+    name="x-api-key", 
+    description="Enter your TENET AI API key to authenticate requests.",
+    auto_error=False
+)
+
 # CORS middleware - configurable origins for security
 CORS_ALLOWED_ORIGINS = os.getenv(
     "CORS_ALLOWED_ORIGINS", "https://localhost:3000,https://localhost:5173"
@@ -84,6 +93,10 @@ security = SecurityManager(
 
 
 # Models
+class ErrorResponse(BaseModel):
+    """Standard error response schema."""
+    detail: str = Field(..., description="Description of the error")
+
 class AnalysisRequest(BaseModel):
     """Request for prompt analysis."""
 
@@ -207,7 +220,13 @@ async def shutdown():
             logger.debug("Redis close failed during shutdown", exc_info=True)
 
 
-@app.get("/health", response_model=HealthResponse)
+@app.get(
+    "/health", 
+    response_model=HealthResponse,
+    tags=["System"],
+    summary="Service Health Check",
+    description="Returns the current health status of the Analyzer service, including Redis and ML model connectivity."
+)
 async def health_check():
     """Health check endpoint.
 
@@ -261,11 +280,15 @@ async def health_check():
 @app.post(
     "/v1/analyze",
     response_model=AnalysisResponse,
+    tags=["Analysis"],
+    summary="Analyze Prompt",
+    description="Analyzes a given prompt for security threats using both heuristic rules and ML-based detection. Requires a valid API key.",
     responses={
-        401: {"description": "Invalid API key"},
-        403: {"description": "Insufficient permissions"},
-        429: {"description": "Rate limit or quota exceeded"},
+        401: {"model": ErrorResponse, "description": "Invalid API key"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        429: {"model": ErrorResponse, "description": "Rate limit or quota exceeded"}
     },
+    dependencies=[Security(api_key_scheme)]
 )
 async def analyze_prompt(request: AnalysisRequest, x_api_key: Annotated[str, Header(...)]):
     """Analyze a prompt for security threats.

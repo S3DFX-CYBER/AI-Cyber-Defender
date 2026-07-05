@@ -120,8 +120,8 @@ class TestLLMEventEndpoint:
                 "prompt": "Hello world",
             },
         )
-        assert response.status_code == 422  # Missing header
-
+        assert response.status_code == 401  # Missing header
+    
     def test_rejects_invalid_api_key(self):
         """Test that invalid API key is rejected."""
         response = client.post(
