@@ -19,7 +19,7 @@ isort>=8.0.1
 
 # Security Scanning
 bandit>=1.9.4
-safety>=3.0.0  # Updated for latest vulnerability database
+safety>=3.8.1  # Updated for latest vulnerability database
 pip-audit>=2.6.0  # Dependency vulnerability scanning
 
 # Development Tools
