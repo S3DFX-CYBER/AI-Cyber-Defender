@@ -22,7 +22,8 @@ from enum import Enum
 from typing import Any, Optional
 
 import redis.asyncio as redis
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query, Security
+from fastapi.security import APIKeyHeader
 
 from services.security import SecurityManager
 from services.utils.metrics import PrometheusMiddleware, increment_detection
@@ -146,6 +147,13 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# API Key Security Scheme for OpenAPI Docs
+api_key_scheme = APIKeyHeader(
+    name="X-API-Key", 
+    description="Enter your TENET AI API key to authenticate requests.",
+    auto_error=False
+)
+
 app.add_middleware(PrometheusMiddleware)
 app.add_middleware(
     CORSMiddleware,
@@ -169,6 +177,9 @@ security = SecurityManager(
     redis_client_getter=lambda: redis_client,
 )
 
+class ErrorResponse(BaseModel):
+    """Standard error response schema."""
+    detail: str = Field(..., description="Description of the error")
 
 class LLMEventRequest(BaseModel):
     source_type: str = Field(..., description="chat | agent | api | workflow", min_length=1, max_length=64)
@@ -298,7 +309,13 @@ async def _redis_reconnect_loop() -> None:
             await redis_cb.record_failure()
 
 
-@app.get("/health", response_model=HealthResponse)
+@app.get(
+    "/health", 
+    response_model=HealthResponse,
+    tags=["System"],
+    summary="Service Health Check",
+    description="Returns the current health status of the Ingest service, including Redis connectivity and circuit breaker state."
+)
 async def health_check() -> HealthResponse:
     redis_ok = await redis_call(redis_client.ping()) if redis_client else None
 
@@ -312,8 +329,19 @@ async def health_check() -> HealthResponse:
     )
 
 
-@app.post("/v1/events/llm", response_model=LLMEventResponse)
-async def ingest_llm_event(request: LLMEventRequest, x_api_key: str = Header(...)):
+@app.post(
+    "/v1/events/llm", 
+    response_model=LLMEventResponse,
+    tags=["Events"],
+    summary="Ingest LLM Event",
+    description="Submits an LLM request for security processing and heuristic threat detection. Requires 'ingest' permission.",
+    responses={
+        401: {"model": ErrorResponse, "description": "Invalid API key"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        422: {"model": ErrorResponse, "description": "Validation error (e.g., empty prompt)"}
+    }
+)
+async def ingest_llm_event(request: LLMEventRequest, x_api_key: Optional[str] = Security(api_key_scheme)):
     auth = await security.require_auth(x_api_key, required_permission="ingest")
     if not request.prompt.strip():
         raise HTTPException(status_code=422, detail="Prompt must not be empty or whitespace")
@@ -424,14 +452,23 @@ def quick_heuristic_check(prompt: str) -> tuple[bool, float, str, str]:
     return False, 0.0, "benign", "none"
 
 
-@app.get("/v1/events")
+@app.get(
+    "/v1/events",
+    tags=["Events"],
+    summary="List Events",
+    description="Retrieves a paginated list of security events for the authenticated organization. Requires 'read' permission.",
+    responses={
+        401: {"model": ErrorResponse, "description": "Invalid API key"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        503: {"model": ErrorResponse, "description": "Service degraded - event store unavailable"}
+    }
+)
 async def list_events(
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-    x_api_key: str = Header(...),
+    x_api_key: Optional[str] = Security(api_key_scheme),
 ):
     auth = await security.require_auth(x_api_key, required_permission="read")
-
     if redis_cb.state == CircuitState.OPEN or not redis_client:
         raise HTTPException(status_code=503, detail="Service degraded - event store unavailable")
 
@@ -463,10 +500,21 @@ async def list_events(
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@app.get("/v1/events/{event_id}", response_model=EventDetailResponse)
-async def get_event(event_id: str, x_api_key: str = Header(...)):
+@app.get(
+    "/v1/events/{event_id}", 
+    response_model=EventDetailResponse,
+    tags=["Events"],
+    summary="Get Event Details",
+    description="Retrieves detailed information for a specific security event. Requires 'read' permission.",
+    responses={
+        401: {"model": ErrorResponse, "description": "Invalid API key"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        404: {"model": ErrorResponse, "description": "Event not found"},
+        503: {"model": ErrorResponse, "description": "Service degraded"}
+    }
+)
+async def get_event(event_id: str, x_api_key: Optional[str] = Security(api_key_scheme)):
     auth = await security.require_auth(x_api_key, required_permission="read")
-
     if not event_id.strip():
         raise HTTPException(status_code=422, detail="event_id must not be empty")
 
@@ -488,10 +536,19 @@ async def get_event(event_id: str, x_api_key: str = Header(...)):
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@app.get("/v1/stats")
-async def get_stats(x_api_key: str = Header(...)):
+@app.get(
+    "/v1/stats",
+    tags=["Metrics"],
+    summary="Get Statistics",
+    description="Returns threat statistics and event metrics for the organization. Requires 'read' permission.",
+    responses={
+        401: {"model": ErrorResponse, "description": "Invalid API key"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        503: {"model": ErrorResponse, "description": "Service degraded"}
+    }
+)
+async def get_stats(x_api_key: Optional[str] = Security(api_key_scheme)):
     auth = await security.require_auth(x_api_key, required_permission="read")
-
     if redis_cb.state == CircuitState.OPEN or not redis_client:
         raise HTTPException(status_code=503, detail="Service degraded - stats unavailable")
 
@@ -527,10 +584,18 @@ async def get_stats(x_api_key: str = Header(...)):
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@app.get("/v1/circuit-status")
-async def circuit_status(x_api_key: str = Header(...)):
+@app.get(
+    "/v1/circuit-status",
+    tags=["System"],
+    summary="Get Circuit Breaker Status",
+    description="Returns the current status and configuration of the Redis circuit breaker. Requires 'read' permission.",
+    responses={
+        401: {"model": ErrorResponse, "description": "Invalid API key"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"}
+    }
+)
+async def circuit_status(x_api_key: Optional[str] = Security(api_key_scheme)):
     auth = await security.require_auth(x_api_key, required_permission="read")
-
     return {
         "name": redis_cb.name,
         "state": redis_cb.state.value,
@@ -539,8 +604,17 @@ async def circuit_status(x_api_key: str = Header(...)):
     }
 
 
-@app.get("/v1/audit/export")
-async def export_audit_logs(limit: int = Query(default=200, ge=1, le=2000), x_api_key: str = Header(...)):
+@app.get(
+    "/v1/audit/export",
+    tags=["Audit"],
+    summary="Export Audit Logs",
+    description="Exports security audit records for administrative review. Requires 'admin' permission.",
+    responses={
+        401: {"model": ErrorResponse, "description": "Invalid API key"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"}
+    }
+)
+async def export_audit_logs(limit: int = Query(default=200, ge=1, le=2000), x_api_key: Optional[str] = Security(api_key_scheme)):
     auth = await security.require_auth(x_api_key, required_permission="admin")
     records = security.export_audit_records(auth.org_id, limit=limit)
     security.audit(

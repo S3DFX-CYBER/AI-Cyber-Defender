@@ -16,7 +16,7 @@ h11>=0.16.0  # CVE-2025-43859 fix
 
 # ML & Data Science
 scikit-learn>=1.8.0
-numpy>=2.4.6
+numpy>=2.5.0
 pandas>=3.0.3
 joblib>=1.5.3
 
@@ -35,5 +35,5 @@ requests>=2.34.2
 python-dotenv>=1.2.2
 
 # Utilities
-python-dateutil>=2.8.2
+python-dateutil>=2.9.0.post0
 prometheus-client>=0.20.0
