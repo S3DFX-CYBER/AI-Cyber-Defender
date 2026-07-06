@@ -223,7 +223,7 @@ TENET AI uses structured JSON logging to improve observability in production. Ad
   - `WARNING`: Recoverable or unexpected situations (e.g., rate limit exceeded).
   - `ERROR`: Failed operations (e.g., API call failed).
   - `CRITICAL`: Severe failures affecting application availability (e.g., database connection lost).
-- **Sensitive Data**: Never log passwords, tokens, API keys, or raw secrets.
+- **Sensitive Data**: Never log passwords, tokens, API keys, or raw secrets. The logging framework does not automatically redact sensitive values; developers are responsible for ensuring secrets are not passed to logger calls.
 
 ### Testing Standards
 
