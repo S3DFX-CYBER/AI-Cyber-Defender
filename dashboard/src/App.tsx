@@ -133,6 +133,7 @@ export default function App() {
   const [presetName, setPresetName] = useState('');
   const [showPresetInput, setShowPresetInput] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [feedback, setFeedback] = useState<Record<string, string>>({});
   const searchRef = useRef<HTMLInputElement>(null);
 
   const updateFilter = useCallback((key: keyof FilterState, value: string) => {
@@ -268,6 +269,17 @@ const parseLocalDayEnd = (date: string) => {
     : '0.00';
 
   const detectionTypes = [...new Set(events.map(e => e.source_type))];
+  const handleFeedback = (
+  eventId: string,
+  type: "false_positive" | "false_negative"
+) => {
+  setFeedback(prev => ({
+    ...prev,
+    [eventId]: type
+  }));
+
+};
+
 
   return (
     <div className="app-container">
@@ -481,7 +493,51 @@ const parseLocalDayEnd = (date: string) => {
                         <td className="prompt-cell">
                           "{event.prompt ? (event.prompt.length > 60 ? `${event.prompt.substring(0, 60)}...` : event.prompt) : 'N/A'}"
                         </td>
-                        <td>{event.blocked ? '🚫 Blocked' : '✅ Allowed'}</td>
+                        <td>
+  <div
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  }}
+>
+    <span>{event.blocked ? "🚫 Blocked" : "✅ Allowed"}</span>
+    {feedback[event.event_id] && (
+  <span style={{ color: "#22c55e", fontSize: "12px" }}>
+    ✓ {feedback[event.event_id]}
+  </span>
+)}
+
+   <button
+  style={{
+    padding: "8px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    backgroundColor: "#2563eb",
+    color: "white",
+    border: "none",
+    fontWeight: "bold"
+  }}
+  onClick={() => handleFeedback(event.event_id, "false_positive")}
+>
+  Mark as False Positive
+</button>
+<button
+  style={{
+    padding: "8px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    backgroundColor: "#dc2626",
+    color: "white",
+    border: "none",
+    fontWeight: "bold"
+  }}
+  onClick={() => handleFeedback(event.event_id, "false_negative")}
+>
+  Mark as False Negative
+</button>
+  </div>
+</td>
                       </tr>
                     ))
                   )}

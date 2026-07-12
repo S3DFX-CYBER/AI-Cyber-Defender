@@ -588,3 +588,12 @@ td {
   color: var(--text-secondary);
   padding: 40px;
 }
+table td:last-child,
+table th:last-child {
+    min-width: 220px;
+}
+
+table button {
+    margin-top: 5px;
+    padding: 5px 8px;
+}
