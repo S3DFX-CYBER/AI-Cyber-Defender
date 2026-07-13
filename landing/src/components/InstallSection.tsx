@@ -227,12 +227,26 @@ export default function InstallSection() {
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <span style={{ color: '#64748B' }}>$</span>
                                 <span>{d.cmd}</span>
-                              </div>
-                              <span style={{ fontSize: '11px', color: '#94A3B8' }}>
-                                {copiedCmd === d.cmd ? 'Copied!' : 'Copy'}
-                              </span>
-                            </div>
-
+                              <span style={{ fontSize: '11px', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                               {copiedCmd === d.cmd ? (
+                               <>
+                               {/* Checkmark Icon - when copied */}
+                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                               <polyline points="20 6 9 17 4 12"></polyline>
+                               </svg>
+                               Copied!
+                               </>
+                               ) : (
+                               <>
+                               {/* Clipboard Icon - default state */}
+                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                               </svg>
+                                Copy
+                                 </>
+                                )}
+                             </span>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                               {d.feats.map((f, j) => (
                                 <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569', fontWeight: 500 }}>
