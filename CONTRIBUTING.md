@@ -216,7 +216,7 @@ TENET AI uses structured JSON logging to improve observability in production. Ad
   from services.utils.logging_config import setup_logging
   logger = setup_logging(__name__)
   ```
-- **Correlation IDs**: The logging framework automatically handles request correlation IDs across services. Do not manually construct log messages with request identifiers.
+- **Correlation IDs**: HTTP services automatically propagate request correlation IDs via middleware (see `services/ingest/app.py`). For scripts and non-HTTP services, correlation IDs can be set manually using `correlation_id_var.set()` from `services.utils.logging_config`. Do not manually construct log messages with request identifiers.
 - **Severity Levels**:
   - `DEBUG`: Development and diagnostic details.
   - `INFO`: Normal operational events (e.g., service started, request completed).
