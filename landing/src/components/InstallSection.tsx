@@ -147,7 +147,7 @@ export default function InstallSection() {
           <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>7</span><span>{'  '}<span className="ck">const</span> result = <span className="ck">await</span> tenet.<span className="cf">check</span>(req.body.prompt);</span></div>
           <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>8</span><span></span></div>
           <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>9</span><span>{'  '}<span className="ck">if</span> (result.blocked) {'{'}</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>10</span><span>{'    '}<span className="ck">return</span> res.<span className="cf">status</span>(403).<span className="cf">json</span>({'{'} error: <span className="cs">'⛔ Blocked'</span> {'}'});</span></div>
+          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>10</span><span>{'    '}return res.status(403).json({'{'} error: '⛔ Blocked' {'}'});</span></div>
           <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>11</span><span>{'  }'}</span></div>
           <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>12</span><span></span></div>
           <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>13</span><span>{'  '}<span className="cc">// Safe to call OpenAI / Anthropic</span></span></div>
@@ -165,8 +165,6 @@ export default function InstallSection() {
       );
     }
   };
-
-  const selectedInstall = INSTALLS[selectedIndex];
 
   return (
     <section className="section" id="download" aria-label="Installation Instructions">
@@ -205,6 +203,7 @@ export default function InstallSection() {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>{d.title}</div>
                         <div style={{ fontSize: '13px', color: '#64748B' }}>{d.sub}</div>
+                        
                         {isSelected && (
                           <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div 
@@ -227,26 +226,27 @@ export default function InstallSection() {
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <span style={{ color: '#64748B' }}>$</span>
                                 <span>{d.cmd}</span>
+                              </div>
                               <span style={{ fontSize: '11px', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                               {copiedCmd === d.cmd ? (
-                               <>
-                               {/* Checkmark Icon - when copied */}
-                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                               <polyline points="20 6 9 17 4 12"></polyline>
-                               </svg>
-                               Copied!
-                               </>
-                               ) : (
-                               <>
-                               {/* Clipboard Icon - default state */}
-                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                               </svg>
-                                Copy
-                                 </>
+                                {copiedCmd === d.cmd ? (
+                                  <>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                    Copy
+                                  </>
                                 )}
-                             </span>
+                              </span>
+                            </div>
+                            
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                               {d.feats.map((f, j) => (
                                 <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569', fontWeight: 500 }}>
@@ -263,12 +263,13 @@ export default function InstallSection() {
                               className="btn btn-outline btn-sm" 
                               style={{ width: 'fit-content', marginTop: '8px', padding: '6px 16px', fontSize: '12px' }}
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><path d="M21 15v4a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h-9a2 2 0 0 1-2 2v1"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                               Download Source
                             </a>
                           </div>
                         )}
                       </div>
+                      
                       <div style={{ padding: '4px 8px', borderRadius: '4px', background: '#F3E8FF', color: '#A855F7', fontSize: '11px', fontWeight: 700, marginRight: '16px', marginTop: isSelected ? '4px' : '0' }}>
                         {d.plat}
                       </div>
@@ -299,7 +300,7 @@ export default function InstallSection() {
                   Integration example
                 </div>
                 <div style={{ padding: '4px 10px', borderRadius: '6px', background: '#F3E8FF', color: '#A855F7', fontSize: '11px', fontWeight: 700 }}>
-                  {selectedInstall.plat}
+                  {INSTALLS[selectedIndex].plat}
                 </div>
               </div>
 
@@ -311,13 +312,19 @@ export default function InstallSection() {
                       <div className="code-dot2" style={{ background: '#F59E0B' }} />
                       <div className="code-dot2" style={{ background: '#22C55E' }} />
                     </div>
-                    <span className="code-file" style={{ color: '#94A3B8', fontSize: '13px', fontFamily: 'var(--mono)', flex: 1 }}>integration_example.{selectedInstall.plat === 'Python' ? 'py' : selectedInstall.plat === 'Node.js' ? 'ts' : 'sh'}</span>
-                    <div onClick={() => handleCopy(selectedInstall.cmd)} style={{ cursor: 'pointer', color: '#94A3B8' }} title="Copy integration code">
-                      {copiedCmd ? <span style={{fontSize: '11px'}}>Copied!</span> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>}
-                    </div>
-                  </div>
-                  <pre className="code-body" style={{ padding: '24px', fontSize: '13px', lineHeight: 1.7, margin: 0, overflowX: 'auto', background: '#111827', color: '#F8FAFC' }}>
-                    {renderCodeForPlatform(selectedInstall.plat)}
+                    <span className="code-file" style={{ color: '#94A3B8', fontSize: '13px', fontFamily: 'var(--mono)', flex: 1 }}>
+  integration_example.{INSTALLS[selectedIndex].plat === 'Python' ? 'py' : INSTALLS[selectedIndex].plat === 'Node.js' ? 'ts' : 'sh'}
+</span>
+<div onClick={() => handleCopy(INSTALLS[selectedIndex].cmd)} style={{ cursor: 'pointer', color: '#94A3B8' }} title="Copy integration code">
+  {copiedCmd ? (
+    <span style={{ fontSize: '11px' }}>Copied!</span>
+  ) : (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  )}
+</div>
                   </pre>
                 </div>
               </div>
