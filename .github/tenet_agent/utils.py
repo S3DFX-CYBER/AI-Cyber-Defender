@@ -10,6 +10,12 @@ import requests
 import google.generativeai as genai
 from github import Github, GithubException
 
+# Add project root to sys.path to import services.utils
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+from services.utils.logging_config import setup_logging
+
+logger = setup_logging(__name__)
+
 
 # ─── GitHub client ────────────────────────────────────────────────────────────
 
@@ -17,7 +23,7 @@ def get_github_client() -> Github:
     """Create and return an authenticated GitHub client."""
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
-        print("❌ GITHUB_TOKEN is not set.")
+        logger.error("❌ GITHUB_TOKEN is not set.")
         sys.exit(1)
     return Github(token)
 
@@ -26,7 +32,7 @@ def get_repo(g: Github):
     """Return the repository object for the current workflow context."""
     repo_name = os.environ.get("REPO")
     if not repo_name:
-        print("❌ REPO environment variable is not set.")
+        logger.error("❌ REPO environment variable is not set.")
         sys.exit(1)
     return g.get_repo(repo_name)
 
@@ -37,7 +43,7 @@ def get_llm_client():
     """Configure Gemini and return a GenerativeModel instance."""
     api_key = os.environ.get("TENET_AI_KEY")
     if not api_key:
-        print("❌ TENET_AI_KEY secret is not set. Please add it in repo Settings → Secrets → Actions.")
+        logger.error("❌ TENET_AI_KEY secret is not set. Please add it in repo Settings → Secrets → Actions.")
         sys.exit(1)
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(
@@ -66,7 +72,7 @@ def call_llm(model, prompt: str) -> str | None:
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        print(f"⚠️  LLM call failed: {e}")
+        logger.warning(f"⚠️  LLM call failed: {e}")
         return None
 
 
@@ -97,7 +103,7 @@ def post_pr_comment(repo, pr_number: int, body: str) -> None:
     """Post a comment on a PR."""
     pr = repo.get_pull(pr_number)
     pr.create_issue_comment(body)
-    print(f"✅ Posted review comment on PR #{pr_number}")
+    logger.info(f"✅ Posted review comment on PR #{pr_number}")
 
 
 # ─── Issue utilities ──────────────────────────────────────────────────────────
@@ -106,7 +112,7 @@ def post_issue_comment(repo, issue_number: int, body: str) -> None:
     """Post a comment on an issue."""
     issue = repo.get_issue(issue_number)
     issue.create_comment(body)
-    print(f"✅ Posted comment on issue #{issue_number}")
+    logger.info(f"✅ Posted comment on issue #{issue_number}")
 
 
 def get_repo_structure(base_path: str = ".", max_files: int = 120) -> str:
@@ -224,18 +230,18 @@ def create_branch_and_commit(
     import subprocess
 
     if not _validate_branch_name(branch_name):
-        print(f"❌ Invalid branch name: {branch_name!r}")
+        logger.error(f"❌ Invalid branch name: {branch_name!r}")
         return False
 
     for filepath in file_changes:
         if not _validate_filepath(filepath):
-            print(f"❌ Invalid filepath (potential path traversal): {filepath!r}")
+            logger.error(f"❌ Invalid filepath (potential path traversal): {filepath!r}")
             return False
 
     def run(cmd: list[str]) -> subprocess.CompletedProcess:
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            print(
+            logger.error(
                 f"Git command failed: {' '.join(cmd)}\n"
                 f"Stdout: {result.stdout}\nStderr: {result.stderr}"
             )
@@ -254,8 +260,8 @@ def create_branch_and_commit(
 
         run(["git", "commit", "-m", commit_message])
         run(["git", "push", "origin", branch_name])
-        print(f"✅ Branch '{branch_name}' pushed.")
+        logger.info(f"✅ Branch '{branch_name}' pushed.")
         return True
     except Exception as e:
-        print(f"❌ Git error: {e}")
+        logger.error(f"❌ Git error: {e}")
         return False

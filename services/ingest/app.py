@@ -22,7 +22,7 @@ from enum import Enum
 from typing import Any, Optional
 
 import redis.asyncio as redis
-from fastapi import FastAPI, Header, HTTPException, Query, Security
+from fastapi import FastAPI, Header, HTTPException, Query, Request, Response, Security
 from fastapi.security import APIKeyHeader
 
 from services.security import SecurityManager
@@ -31,28 +31,9 @@ from prometheus_client import make_asgi_app
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from services.utils.logging_config import setup_logging, correlation_id_var
 
-class JSONFormatter(logging.Formatter):
-    """Emit logs in structured JSON format."""
-
-    def format(self, record: logging.LogRecord) -> str:
-        payload = {
-            "timestamp": f"{datetime.utcnow().isoformat()}Z",
-            "level": record.levelname,
-            "service": "tenet-ingest",
-            "version": "0.1.0",
-            "logger": record.name,
-            "message": record.getMessage(),
-        }
-        if record.exc_info:
-            payload["exception"] = self.formatException(record.exc_info)
-        return json.dumps(payload)
-
-
-handler = logging.StreamHandler()
-handler.setFormatter(JSONFormatter())
-logging.basicConfig(level=logging.INFO, handlers=[handler])
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
@@ -162,6 +143,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    corr_id = request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+    correlation_id_var.set(corr_id)
+    response = await call_next(request)
+    response.headers["X-Correlation-ID"] = corr_id
+    return response
 
 # Mount Prometheus metrics endpoint
 metrics_app = make_asgi_app()
