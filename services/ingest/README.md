@@ -335,6 +335,24 @@ CB_HALF_OPEN_MAX_CALLS=1
 ```
 
 ---
+## API Documentation & Deployment
+
+The Ingest Service provides an interactive, self-documenting OpenAPI (Swagger) interface.
+
+### Accessing the Docs
+Once the service is running, you can explore the API and its schemas at:
+* **Swagger UI:** `http://localhost:8000/docs`
+* **ReDoc:** `http://localhost:8000/redoc`
+* **OpenAPI Schema:** `http://localhost:8000/openapi.json`
+
+### Authentication in Swagger UI
+1. Navigate to `/docs`.
+2. Click the **Authorize** button (padlock icon) at the top right.
+3. Enter your API key in the `X-API-Key` field and click **Authorize**.
+4. You can now execute requests directly from the browser to test endpoints like `/v1/events/llm`.
+
+### Automated Deployment
+The OpenAPI documentation is automatically exported and deployed to GitHub Pages via our CI/CD pipeline on every push to the `main` branch. This provides a centralized, always-up-to-date API reference for contributors and integrators.
 
 ## Local Development
 

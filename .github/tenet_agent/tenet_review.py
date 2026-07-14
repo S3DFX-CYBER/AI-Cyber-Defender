@@ -10,6 +10,12 @@ import os
 import re
 import sys
 
+# Add project root to sys.path to import services.utils
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+from services.utils.logging_config import setup_logging
+
+logger = setup_logging(__name__)
+
 from utils import (
     get_github_client,
     get_repo,
@@ -24,17 +30,17 @@ from prompts import PR_REVIEW_SYSTEM, PR_REVIEW_TEMPLATE
 
 def main():
     """Run the TENET Agent PR review workflow."""
-    print("🛡️  TENET Agent - PR Reviewer starting...")
+    logger.info("🛡️  TENET Agent - PR Reviewer starting...")
 
     # ── Gather context from environment variables ──────────────────────────────
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
-        print("❌ GITHUB_TOKEN is not set.")
+        logger.error("❌ GITHUB_TOKEN is not set.")
         sys.exit(1)
 
     repo_name = os.environ.get("REPO")
     if not repo_name:
-        print("❌ REPO environment variable is not set.")
+        logger.error("❌ REPO environment variable is not set.")
         sys.exit(1)
 
     pr_number = int(os.environ["PR_NUMBER"])
@@ -42,23 +48,23 @@ def main():
     pr_body = os.environ.get("PR_BODY", "") or "*No description provided.*"
     pr_author = os.environ.get("PR_AUTHOR", "unknown")
 
-    print(f"📋 Reviewing PR #{pr_number}: {pr_title}")
-    print(f"📦 Repository: {repo_name}")
+    logger.info(f"📋 Reviewing PR #{pr_number}: {pr_title}")
+    logger.info(f"📦 Repository: {repo_name}")
 
     # ── Fetch PR diff ──────────────────────────────────────────────────────────
-    print("📥 Fetching PR diff...")
+    logger.info("📥 Fetching PR diff...")
     try:
         diff = get_pr_diff(repo_name, pr_number, token)
     except Exception as e:
-        print(f"❌ Failed to fetch PR diff: {e}")
+        logger.error(f"❌ Failed to fetch PR diff: {e}")
         sys.exit(1)
 
     if not diff.strip():
-        print("ℹ️  PR has no diff (empty). Skipping review.")
+        logger.info("ℹ️  PR has no diff (empty). Skipping review.")
         sys.exit(0)
 
     diff = truncate_diff(diff, max_chars=80_000)
-    print(f"📏 Diff size: {len(diff)} chars")
+    logger.info(f"📏 Diff size: {len(diff)} chars")
 
     # ── Build the review prompt ────────────────────────────────────────────────
     user_prompt = PR_REVIEW_TEMPLATE.format(
@@ -72,15 +78,15 @@ def main():
     prompt = f"{PR_REVIEW_SYSTEM}\n\n{user_prompt}"
 
     # ── Call Gemini ────────────────────────────────────────────────────────────
-    print("🤖 Calling Gemini for security review...")
+    logger.info("🤖 Calling Gemini for security review...")
     model = get_llm_client()
     review_text = call_llm(model, prompt)
 
     if not review_text:
-        print("❌ LLM returned an empty or error response.")
+        logger.error("❌ LLM returned an empty or error response.")
         sys.exit(1)
 
-    print("✍️  Review generated. Posting to PR...")
+    logger.info("✍️  Review generated. Posting to PR...")
 
     # ── Post the review comment ────────────────────────────────────────────────
     g = get_github_client()
@@ -96,12 +102,12 @@ def main():
             existing_labels = [lbl.name for lbl in pr.get_labels()]
             if "🚨 security" not in existing_labels:
                 pr.add_to_labels("🚨 security")
-                print("🔴 Added '🚨 security' label due to critical/high findings.")
+                logger.warning("🔴 Added '🚨 security' label due to critical/high findings.")
         except Exception as e:
             # Label may not exist — not a fatal error
-            print(f"⚠️  Could not add security label: {e}")
+            logger.warning(f"⚠️  Could not add security label: {e}")
 
-    print("✅ TENET PR Review complete.")
+    logger.info("✅ TENET PR Review complete.")
 
 
 if __name__ == "__main__":
