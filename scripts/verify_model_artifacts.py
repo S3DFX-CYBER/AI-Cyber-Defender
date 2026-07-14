@@ -3,12 +3,18 @@
 
 from __future__ import annotations
 
+import os
 import argparse
 import hashlib
 import json
 import sys
 from pathlib import Path
 
+# Add project root to sys.path to import services.utils
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from services.utils.logging_config import setup_logging
+
+logger = setup_logging(__name__)
 
 REQUIRED_FILES = ["prompt_detector.joblib", "vectorizer.joblib", "metadata.json", "checksums.json"]
 REQUIRED_METADATA_FIELDS = [
@@ -89,17 +95,17 @@ def main() -> int:
 
     model_path = Path(args.model_path)
     if not model_path.exists():
-        print(f"ERROR: Model path does not exist: {model_path}")
+        logger.error(f"Model path does not exist: {model_path}")
         return 2
 
     errors = validate(model_path)
     if errors:
-        print("ERROR: Model artifact validation failed:")
+        logger.error("Model artifact validation failed:")
         for err in errors:
-            print(f" - {err}")
+            logger.error(f" - {err}")
         return 1
 
-    print(f"OK: Model artifacts are valid at {model_path}")
+    logger.info(f"OK: Model artifacts are valid at {model_path}")
     return 0
 
 
