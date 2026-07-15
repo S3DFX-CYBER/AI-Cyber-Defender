@@ -18,6 +18,12 @@ import sys
 import json
 from pathlib import Path
 
+# Add project root to sys.path to import services.utils
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+from services.utils.logging_config import setup_logging
+
+logger = setup_logging(__name__)
+
 from github import GithubException
 
 from utils import (
@@ -59,14 +65,14 @@ def _safe_filepath(filepath: str, repo_root: Path) -> str | None:
     # Block disallowed extensions
     suffix = Path(filepath).suffix.lower()
     if suffix and suffix not in _ALLOWED_EXTENSIONS:
-        print(f"⚠️  Skipping disallowed file extension from LLM output: {filepath!r}")
+        logger.warning(f"⚠️  Skipping disallowed file extension from LLM output: {filepath!r}")
         return None
 
     candidate = (repo_root / filepath).resolve()
 
     # Reject anything that escapes the repo root or touches .git
     if not candidate.is_relative_to(repo_root) or ".git" in candidate.parts:
-        print(f"⚠️  Skipping unsafe path from LLM output: {filepath!r}")
+        logger.warning(f"⚠️  Skipping unsafe path from LLM output: {filepath!r}")
         return None
 
     return str(candidate.relative_to(repo_root))
@@ -115,10 +121,10 @@ def parse_file_changes(llm_output: str) -> dict[str, str] | None:
         matches = bold_header.findall(llm_output)
 
     if not matches:
-        print("⚠️  parse_file_changes: no FILE blocks matched any pattern.")
-        print("─── RAW LLM OUTPUT (first 2000 chars) ───")
-        print(llm_output[:2000])
-        print("──────────────────────────────────────────")
+        logger.warning("⚠️  parse_file_changes: no FILE blocks matched any pattern.")
+        logger.warning("─── RAW LLM OUTPUT (first 2000 chars) ───")
+        logger.warning(llm_output[:2000])
+        logger.warning("──────────────────────────────────────────")
         return {}
 
     repo_root = Path(".").resolve()
@@ -147,7 +153,7 @@ def extract_commit_message(llm_output: str, fallback: str) -> str:
 
 def main():
     """Run the TENET Agent issue-solver workflow."""
-    print("🛡️  TENET Agent - Issue Solver starting...")
+    logger.info("🛡️  TENET Agent - Issue Solver starting...")
 
     # ── Gather context ─────────────────────────────────────────────────────────
     issue_number = int(os.environ["ISSUE_NUMBER"])
@@ -162,9 +168,9 @@ def main():
     except Exception:
         issue_labels = "none"
 
-    print(f"📋 Issue #{issue_number}: {issue_title}")
-    print(f"🔖 Labels: {issue_labels}")
-    print(f"👤 Triggered by: @{triggered_by}")
+    logger.info(f"📋 Issue #{issue_number}: {issue_title}")
+    logger.info(f"🔖 Labels: {issue_labels}")
+    logger.info(f"👤 Triggered by: @{triggered_by}")
 
     g = get_github_client()
     repo = get_repo(g)
@@ -173,13 +179,13 @@ def main():
     branch_name = f"tenet/fix-issue-{issue_number}"
 
     # ── Scan repo ──────────────────────────────────────────────────────────────
-    print("🔍 Scanning repository structure...")
+    logger.info("🔍 Scanning repository structure...")
     repo_structure = get_repo_structure(".")
-    print("📁 Reading relevant source files...")
+    logger.info("📁 Reading relevant source files...")
     relevant_files = read_relevant_files(issue_title, issue_body)
 
     # ── Phase 1: Analysis ──────────────────────────────────────────────────────
-    print("🧠 Phase 1: Asking Gemini to analyze the issue...")
+    logger.info("🧠 Phase 1: Asking Gemini to analyze the issue...")
     analysis_prompt = ISSUE_SOLVER_ANALYSIS_TEMPLATE.format(
         issue_number=issue_number,
         issue_title=issue_title,
@@ -189,10 +195,10 @@ def main():
         relevant_files=relevant_files,
     )
     analysis = call_llm(model, analysis_prompt)
-    print("📝 Analysis complete.")
+    logger.info("📝 Analysis complete.")
 
     # ── Phase 2: Code generation ───────────────────────────────────────────────
-    print("💻 Phase 2: Asking Gemini to generate the fix...")
+    logger.info("💻 Phase 2: Asking Gemini to generate the fix...")
     code_prompt = ISSUE_SOLVER_CODE_TEMPLATE.format(
         issue_number=issue_number,
         issue_title=issue_title,
@@ -200,12 +206,12 @@ def main():
         relevant_files=relevant_files,
     )
     code_output = call_llm(model, code_prompt)
-    print("✍️  Code generation complete.")
+    logger.info("✍️  Code generation complete.")
 
     # ── Debug: log raw output header to aid future parse failures ─────────────
-    print("─── RAW LLM OUTPUT (first 500 chars) ────")
-    print((code_output or "")[:500])
-    print("─────────────────────────────────────────")
+    logger.debug("─── RAW LLM OUTPUT (first 500 chars) ────")
+    logger.debug((code_output or "")[:500])
+    logger.debug("─────────────────────────────────────────")
 
     # ── Parse file changes ─────────────────────────────────────────────────────
     file_changes = parse_file_changes(code_output)
@@ -225,7 +231,7 @@ def main():
             f"---\n*TENET Agent 🛡️*"
         )
         post_issue_comment(repo, issue_number, comment)
-        print("ℹ️  Agent flagged CANNOT_FIX. Commented on issue and exiting.")
+        logger.info("ℹ️  Agent flagged CANNOT_FIX. Commented on issue and exiting.")
         sys.exit(0)
 
     if not file_changes:
@@ -237,15 +243,15 @@ def main():
             f"---\n*TENET Agent 🛡️*"
         )
         post_issue_comment(repo, issue_number, comment)
-        print("⚠️  No file changes parsed. Commented on issue and exiting.")
+        logger.warning("⚠️  No file changes parsed. Commented on issue and exiting.")
         sys.exit(1)
 
-    print(f"📦 Files to update: {list(file_changes.keys())}")
+    logger.info(f"📦 Files to update: {list(file_changes.keys())}")
 
     # ── Commit and push ────────────────────────────────────────────────────────
     commit_message_default = f"fix: auto-fix issue #{issue_number} via TENET Agent"
     commit_message = extract_commit_message(code_output, commit_message_default)
-    print(f"🔧 Commit message: {commit_message}")
+    logger.info(f"🔧 Commit message: {commit_message}")
 
     success = create_branch_and_commit(branch_name, file_changes, commit_message)
     if not success:
@@ -260,7 +266,7 @@ def main():
         sys.exit(1)
 
     # ── Open PR ────────────────────────────────────────────────────────────────
-    print("🚀 Opening PR...")
+    logger.info("🚀 Opening PR...")
     files_changed_list = "\n".join(f"- `{fp}`" for fp in file_changes.keys())
 
     pr_body_prompt = ISSUE_SOLVER_PR_BODY_TEMPLATE.format(
@@ -280,7 +286,7 @@ def main():
             base=default_branch,
             draft=False,
         )
-        print(f"✅ PR #{pr.number} created: {pr.html_url}")
+        logger.info(f"✅ PR #{pr.number} created: {pr.html_url}")
 
         try:
             pr.add_to_labels("tenet-agent")
@@ -288,7 +294,7 @@ def main():
             pass  # Label doesn't exist — not a fatal error
 
     except GithubException as e:
-        print(f"❌ Failed to create PR: {e}")
+        logger.error(f"❌ Failed to create PR: {e}")
         post_issue_comment(
             repo,
             issue_number,
@@ -311,7 +317,7 @@ def main():
         f"---\n*TENET Agent 🛡️ | Triggered by @{triggered_by}*"
     )
     post_issue_comment(repo, issue_number, success_comment)
-    print("✅ TENET Issue Solver complete.")
+    logger.info("✅ TENET Issue Solver complete.")
 
 
 if __name__ == "__main__":

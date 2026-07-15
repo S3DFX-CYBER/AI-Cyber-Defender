@@ -312,19 +312,30 @@ export default function InstallSection() {
                       <div className="code-dot2" style={{ background: '#F59E0B' }} />
                       <div className="code-dot2" style={{ background: '#22C55E' }} />
                     </div>
-                    <span className="code-file" style={{ color: '#94A3B8', fontSize: '13px', fontFamily: 'var(--mono)', flex: 1 }}>
-  integration_example.{INSTALLS[selectedIndex].plat === 'Python' ? 'py' : INSTALLS[selectedIndex].plat === 'Node.js' ? 'ts' : 'sh'}
-</span>
-<div onClick={() => handleCopy(INSTALLS[selectedIndex].cmd)} style={{ cursor: 'pointer', color: '#94A3B8' }} title="Copy integration code">
-  {copiedCmd ? (
-    <span style={{ fontSize: '11px' }}>Copied!</span>
-  ) : (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  )}
-</div>
+                    <span className="code-file" style={{ color: '`#94A3B8`', fontSize: '13px', fontFamily: 'var(--mono)', flex: 1 }}>
+                      integration_example.{INSTALLS[selectedIndex].plat === 'Python' ? 'py' : INSTALLS[selectedIndex].plat === 'Node.js' ? 'ts' : 'sh'}
+                    </span>
+                    <div onClick={() => handleCopy(INSTALLS[selectedIndex].cmd)} style={{ cursor: 'pointer', color: '`#94A3B8`', display: 'flex', alignItems: 'center', gap: '4px' }} title="Copy integration code">
+                      {copiedCmd === INSTALLS[selectedIndex].cmd ? (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          <span style={{ fontSize: '11px' }}>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                          <span style={{ fontSize: '11px' }}>Copy</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', fontSize: '13px', color: '`#F8FAFC`' }}>
+                    {renderCodeForPlatform(INSTALLS[selectedIndex].plat)}
                   </pre>
                 </div>
               </div>
