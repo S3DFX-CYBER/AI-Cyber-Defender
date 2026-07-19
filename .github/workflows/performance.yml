@@ -1,0 +1,14 @@
+name: Performance Tests
+
+on:
+  pull_request:
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: grafana/setup-k6-action@v1
+
+      - run: k6 run load-tests/analyze.js
