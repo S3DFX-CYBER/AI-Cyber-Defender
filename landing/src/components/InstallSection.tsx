@@ -106,6 +106,25 @@ export default function InstallSection() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
 
+  const codeLineStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '32px minmax(0, 1fr)',
+    columnGap: '8px',
+    alignItems: 'start'
+  };
+
+  const codeLineNumberStyle: React.CSSProperties = {
+    opacity: 0.3,
+    userSelect: 'none',
+    width: '32px',
+    flexShrink: 0
+  };
+
+  const codeLineContentStyle: React.CSSProperties = {
+    minWidth: 0,
+    overflowWrap: 'anywhere'
+  };
+
   const handleCopy = (cmd: string) => {
     navigator.clipboard.writeText(cmd);
     setCopiedCmd(cmd);
@@ -115,53 +134,53 @@ export default function InstallSection() {
   const renderCodeForPlatform = (plat: string) => {
     if (plat === 'Python') {
       return (
-        <code style={{ fontFamily: 'var(--mono)' }}>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>1</span><span><span className="cc"># 1. Install</span> <span className="ck">import</span> <span className="cy">tenet_ai</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>2</span><span><span className="cc"># 2. Initialize</span> <span>tenet</span> = tenet_ai.<span className="cf">Client</span>(<span>api_key</span>=<span className="cs">"your-key"</span>)</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>3</span><span><span className="cc"># 3. Intercept before any LLM call</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>4</span><span>user_input = <span className="cs">"Summarize the latest earnings report."</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>5</span><span>result = tenet.<span className="cf">check</span>(prompt=user_input, user_id=<span className="cs">"u-123"</span>)</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>6</span><span><span className="ck">if</span> result.blocked:</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>7</span><span>{'    '}<span className="ck">return</span> <span className="cs">"⛔ Blocked"</span>  <span className="cc"># &lt;5ms</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>8</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>9</span><span><span className="cc"># 4. Safe - call any LLM normally</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>10</span><span><span className="cc"># OpenAI</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>11</span><span>response = openai.<span className="cf">chat</span>(user_input)</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>12</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>13</span><span><span className="cc"># Claude</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>14</span><span>response = anthropic.<span className="cf">message</span>(user_input)</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>15</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>16</span><span><span className="cc"># Local</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>17</span><span>response = ollama.<span className="cf">generate</span>(user_input)</span></div>
-        </code>
+        <>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>1</span><span style={codeLineContentStyle}><span className="cc"># 1. Install</span> <span className="ck">import</span> <span className="cy">tenet_ai</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>2</span><span style={codeLineContentStyle}><span className="cc"># 2. Initialize</span> <span>tenet</span> = tenet_ai.<span className="cf">Client</span>(<span>api_key</span>=<span className="cs">"your-key"</span>)</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>3</span><span style={codeLineContentStyle}><span className="cc"># 3. Intercept before any LLM call</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>4</span><span style={codeLineContentStyle}>user_input = <span className="cs">"Summarize the latest earnings report."</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>5</span><span style={codeLineContentStyle}>result = tenet.<span className="cf">check</span>(prompt=user_input, user_id=<span className="cs">"u-123"</span>)</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>6</span><span style={codeLineContentStyle}><span className="ck">if</span> result.blocked:</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>7</span><span style={codeLineContentStyle}>{'    '}<span className="ck">return</span> <span className="cs">"⛔ Blocked"</span>  <span className="cc"># &lt;5ms</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>8</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>9</span><span style={codeLineContentStyle}><span className="cc"># 4. Safe - call any LLM normally</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>10</span><span style={codeLineContentStyle}><span className="cc"># OpenAI</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>11</span><span style={codeLineContentStyle}>response = openai.<span className="cf">chat</span>(user_input)</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>12</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>13</span><span style={codeLineContentStyle}><span className="cc"># Claude</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>14</span><span style={codeLineContentStyle}>response = anthropic.<span className="cf">message</span>(user_input)</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>15</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>16</span><span style={codeLineContentStyle}><span className="cc"># Local</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>17</span><span style={codeLineContentStyle}>response = ollama.<span className="cf">generate</span>(user_input)</span></div>
+        </>
       );
     } else if (plat === 'Node.js') {
       return (
-        <code style={{ fontFamily: 'var(--mono)' }}>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>1</span><span><span className="ck">import</span> {'{ TenetClient }'} <span className="ck">from</span> <span className="cs">'@tenet-ai/sdk'</span>;</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>2</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>3</span><span><span className="ck">const</span> tenet = <span className="ck">new</span> <span className="cf">TenetClient</span>({'{'} apiKey: <span className="cs">'your-key'</span> {'}'});</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>4</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>5</span><span><span className="cc">// Intercept as express middleware</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>6</span><span>app.<span className="cf">post</span>(<span className="cs">'/chat'</span>, <span className="ck">async</span> (req, res) =&gt; {'{'}</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>7</span><span>{'  '}<span className="ck">const</span> result = <span className="ck">await</span> tenet.<span className="cf">check</span>(req.body.prompt);</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>8</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>9</span><span>{'  '}<span className="ck">if</span> (result.blocked) {'{'}</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>10</span><span>{'    '}return res.status(403).json({'{'} error: '⛔ Blocked' {'}'});</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>11</span><span>{'  }'}</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>12</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>13</span><span>{'  '}<span className="cc">// Safe to call OpenAI / Anthropic</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>14</span><span>{'  '}<span className="ck">const</span> llmResponse = <span className="ck">await</span> openai.<span className="cf">createChatCompletion</span>({'...'});</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>15</span><span>{'  '}res.<span className="cf">json</span>(llmResponse.data);</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>16</span><span>{'}'});</span></div>
-        </code>
+        <>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>1</span><span style={codeLineContentStyle}><span className="ck">import</span> {'{ TenetClient }'} <span className="ck">from</span> <span className="cs">'@tenet-ai/sdk'</span>;</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>2</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>3</span><span style={codeLineContentStyle}><span className="ck">const</span> tenet = <span className="ck">new</span> <span className="cf">TenetClient</span>(&#123; apiKey: <span className="cs">'your-key'</span> &#125;);</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>4</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>5</span><span style={codeLineContentStyle}><span className="cc">// Intercept as express middleware</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>6</span><span style={codeLineContentStyle}>app.<span className="cf">post</span>(<span className="cs">'/chat'</span>, <span className="ck">async</span> (req, res) =&gt; &#123;</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>7</span><span style={codeLineContentStyle}>{'  '}<span className="ck">const</span> result = <span className="ck">await</span> tenet.<span className="cf">check</span>(req.body.prompt);</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>8</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>9</span><span style={codeLineContentStyle}>{'  '}<span className="ck">if</span> (result.blocked) &#123;</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>10</span><span style={codeLineContentStyle}>{'    '}return res.status(403).json(&#123; error: '⛔ Blocked' &#125;);</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>11</span><span style={codeLineContentStyle}>{'  '}&#125;</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>12</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>13</span><span style={codeLineContentStyle}>{'  '}<span className="cc">// Safe to call OpenAI / Anthropic</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>14</span><span style={codeLineContentStyle}>{'  '}<span className="ck">const</span> llmResponse = <span className="ck">await</span> openai.<span className="cf">createChatCompletion</span>({'...'});</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>15</span><span style={codeLineContentStyle}>{'  '}res.<span className="cf">json</span>(llmResponse.data);</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>16</span><span style={codeLineContentStyle}>&#125;);</span></div>
+        </>
       );
     } else {
       return (
-        <code style={{ fontFamily: 'var(--mono)' }}>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>1</span><span><span className="cc"># General CLI deployment</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>2</span><span>$ {plat === 'Docker' ? 'docker pull tenetai/core' : 'helm install tenet-ai ./chart'}</span></div>
-        </code>
+        <>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>1</span><span style={codeLineContentStyle}><span className="cc"># General CLI deployment</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>2</span><span style={codeLineContentStyle}>$ {plat === 'Docker' ? 'docker pull tenetai/core' : 'helm install tenet-ai ./chart'}</span></div>
+        </>
       );
     }
   };
@@ -334,7 +353,12 @@ export default function InstallSection() {
                       )}
                     </div>
                   </div>
-                  <pre style={{ margin: 0, padding: '20px', overflowX: 'auto', fontSize: '13px', color: '`#F8FAFC`' }}>
+                  <pre
+                    className="code-body"
+                    role="code"
+                    aria-label={`Integration example for ${INSTALLS[selectedIndex].plat}`}
+                    style={{ margin: 0, padding: '20px', overflowX: 'auto', fontSize: '13px', color: '#F8FAFC', fontFamily: 'var(--mono)', whiteSpace: 'pre', lineHeight: '1.4' }}
+                  >
                     {renderCodeForPlatform(INSTALLS[selectedIndex].plat)}
                   </pre>
                 </div>
