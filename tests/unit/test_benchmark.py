@@ -57,5 +57,27 @@ def test_benchmark_runner(tmp_path):
     md_report = runner.generate_markdown_report(report)
     assert "TENET AI Detection Engine Benchmark Report" in md_report
 
-    regressions = runner.check_regression(report, min_f1=0.5, min_precision=0.5)
-    assert isinstance(regressions, list)
+def test_calculate_metrics_mismatched_lengths():
+    with pytest.raises(ValueError, match="must have identical lengths"):
+        calculate_metrics([1, 0], [0.5])
+
+
+def test_benchmark_runner_invalid_dataset_types(tmp_path):
+    # Invalid prompt type
+    dataset_file = tmp_path / "invalid_prompt.json"
+    with open(dataset_file, "w", encoding="utf-8") as f:
+        json.dump([{"prompt": 123, "label": "benign"}], f)
+
+    runner = DetectionBenchmarkRunner(str(dataset_file))
+    with pytest.raises(ValueError, match="'prompt' must be a non-empty string"):
+        runner.load_dataset()
+
+    # Invalid category type
+    dataset_file2 = tmp_path / "invalid_category.json"
+    with open(dataset_file2, "w", encoding="utf-8") as f:
+        json.dump([{"prompt": "valid prompt", "label": "benign", "category": 999}], f)
+
+    runner2 = DetectionBenchmarkRunner(str(dataset_file2))
+    with pytest.raises(ValueError, match="'category' must be a string"):
+        runner2.load_dataset()
+

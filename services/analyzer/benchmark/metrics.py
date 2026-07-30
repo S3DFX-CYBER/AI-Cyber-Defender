@@ -16,7 +16,10 @@ def calculate_metrics(y_true: List[int], y_scores: List[float], threshold: float
     Returns:
         Dict containing precision, recall, f1_score, accuracy, auc_roc, confusion_matrix, total_samples.
     """
-    if not y_true or len(y_true) != len(y_scores):
+    if len(y_true) != len(y_scores):
+        raise ValueError(f"y_true (length {len(y_true)}) and y_scores (length {len(y_scores)}) must have identical lengths.")
+
+    if not y_true:
         return {
             "total_samples": 0,
             "precision": 0.0,
@@ -27,6 +30,7 @@ def calculate_metrics(y_true: List[int], y_scores: List[float], threshold: float
             "confusion_matrix": {"tp": 0, "fp": 0, "tn": 0, "fn": 0},
             "threshold": threshold,
         }
+
 
     tp = 0
     fp = 0

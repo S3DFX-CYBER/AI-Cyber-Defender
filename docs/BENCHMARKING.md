@@ -60,10 +60,15 @@ We encourage adding diverse benign and adversarial test prompts to keep the eval
 ```json
 {
   "prompt": "Your test prompt text here",
-  "label": "malicious", // or "benign"
-  "category": "prompt_injection" // "prompt_injection", "jailbreak", "data_extraction", or "benign"
+  "label": "malicious",
+  "category": "prompt_injection"
 }
 ```
+
+- **`prompt`**: Non-empty string containing the prompt text.
+- **`label`**: Must be either `"malicious"` or `"benign"`.
+- **`category`**: One of `"prompt_injection"`, `"jailbreak"`, `"data_extraction"`, or `"benign"`.
+
 
 3. Run `python scripts/run_benchmark.py` and ensure unit tests pass:
 

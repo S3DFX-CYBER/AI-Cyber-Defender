@@ -1,5 +1,5 @@
 # 📏 TENET AI Detection Engine Benchmark Report
-**Generated At:** `2026-07-30T18:15:24.341957+00:00`  
+**Generated At:** `2026-07-30T18:31:35.397869+00:00`  
 **Dataset:** `data/benchmark_dataset.json`  
 **Total Samples:** 30
 
@@ -23,7 +23,7 @@
 ## 📂 Per-Category Metrics
 | Category | Samples | Precision | Recall | F1 Score | Accuracy |
 | --- | --- | --- | --- | --- | --- |
-| `prompt_injection` | 3 | `1.0000` | `0.6667` | `0.8000` | `0.6667` |
-| `jailbreak` | 7 | `1.0000` | `0.4286` | `0.6000` | `0.4286` |
-| `data_extraction` | 5 | `1.0000` | `0.2000` | `0.3333` | `0.2000` |
+| `prompt_injection` | 18 | `1.0000` | `0.6667` | `0.8000` | `0.9444` |
+| `jailbreak` | 22 | `1.0000` | `0.4286` | `0.6000` | `0.8182` |
+| `data_extraction` | 20 | `1.0000` | `0.2000` | `0.3333` | `0.8000` |
 | `benign` | 15 | `0.0000` | `0.0000` | `0.0000` | `1.0000` |

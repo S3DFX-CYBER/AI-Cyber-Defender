@@ -33,14 +33,22 @@ class DetectionBenchmarkRunner:
             if not isinstance(item, dict) or "prompt" not in item or "label" not in item:
                 raise ValueError(f"Invalid dataset item at index {idx}: missing 'prompt' or 'label'")
             
+            prompt_val = item["prompt"]
+            if not isinstance(prompt_val, str) or not prompt_val.strip():
+                raise ValueError(f"Invalid dataset item at index {idx}: 'prompt' must be a non-empty string.")
+
+            category_val = item.get("category")
+            if category_val is not None and not isinstance(category_val, str):
+                raise ValueError(f"Invalid dataset item at index {idx}: 'category' must be a string if provided.")
+
             label_str = str(item["label"]).lower().strip()
             if label_str not in ("malicious", "benign"):
                 raise ValueError(f"Invalid label '{item['label']}' at index {idx}. Must be 'malicious' or 'benign'")
             
             validated.append({
-                "prompt": item["prompt"],
+                "prompt": prompt_val,
                 "label": label_str,
-                "category": item.get("category", "malicious" if label_str == "malicious" else "benign")
+                "category": category_val if category_val else ("malicious" if label_str == "malicious" else "benign")
             })
 
         return validated
@@ -55,6 +63,10 @@ class DetectionBenchmarkRunner:
         latencies_ms: List[float] = []
         category_breakdown: Dict[str, Dict[str, List[Any]]] = {}
 
+        # First collect all benign controls
+        benign_true: List[int] = []
+        benign_scores: List[float] = []
+
         for item in dataset:
             prompt = item["prompt"]
             ground_truth_label = item["label"]
@@ -68,6 +80,10 @@ class DetectionBenchmarkRunner:
             latencies_ms.append(latency_ms)
             y_true.append(binary_true)
             y_scores.append(response.risk_score)
+
+            if ground_truth_label == "benign":
+                benign_true.append(0)
+                benign_scores.append(response.risk_score)
 
             predicted_label = response.verdict
 
@@ -90,11 +106,22 @@ class DetectionBenchmarkRunner:
         overall_metrics = calculate_metrics(y_true, y_scores, threshold=threshold)
 
         avg_latency = sum(latencies_ms) / len(latencies_ms) if latencies_ms else 0.0
-        p95_latency = sorted(latencies_ms)[int(len(latencies_ms) * 0.95)] if latencies_ms else 0.0
+        # Nearest-rank P95 index: ceil(0.95 * n) - 1
+        import math
+        p95_index = max(0, math.ceil(0.95 * len(latencies_ms)) - 1) if latencies_ms else 0
+        p95_latency = sorted(latencies_ms)[p95_index] if latencies_ms else 0.0
 
         per_category_metrics = {}
         for cat, data in category_breakdown.items():
-            per_category_metrics[cat] = calculate_metrics(data["y_true"], data["y_scores"], threshold=threshold)
+            if cat == "benign" or not benign_true:
+                per_category_metrics[cat] = calculate_metrics(data["y_true"], data["y_scores"], threshold=threshold)
+            else:
+                # Combine category malicious samples with shared benign negative controls for meaningful classification metrics
+                combined_y_true = data["y_true"] + benign_true
+                combined_y_scores = data["y_scores"] + benign_scores
+                cat_metrics = calculate_metrics(combined_y_true, combined_y_scores, threshold=threshold)
+                cat_metrics["category_samples"] = len(data["y_true"])
+                per_category_metrics[cat] = cat_metrics
 
         report = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -109,6 +136,7 @@ class DetectionBenchmarkRunner:
         }
 
         return report
+
 
     @staticmethod
     def generate_markdown_report(report: Dict[str, Any]) -> str:

@@ -71,6 +71,14 @@ def main():
     
     report = runner.run(threshold=args.threshold)
 
+    # Check for regressions before writing report files to prevent baseline path collision
+    regressions = runner.check_regression(
+        current_report=report,
+        baseline_path=args.baseline,
+        min_f1=args.min_f1,
+        min_precision=args.min_precision
+    )
+
     output_json_path = Path(args.output_json)
     output_json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_json_path, "w", encoding="utf-8") as f:
@@ -86,12 +94,6 @@ def main():
     print(f"✅ Benchmark report saved to Markdown: {output_md_path}\n")
     print(md_content)
 
-    regressions = runner.check_regression(
-        current_report=report,
-        baseline_path=args.baseline,
-        min_f1=args.min_f1,
-        min_precision=args.min_precision
-    )
 
     if regressions:
         print("⚠️ REGRESSION / QUALITY AUDIT WARNINGS DETECTED:")
