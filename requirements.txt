@@ -21,7 +21,7 @@ pandas>=3.0.3
 joblib>=1.5.3
 
 # Data Processing
-python-multipart>=0.0.18
+python-multipart>=0.0.32
 
 # Database & Cache
 redis>=5.0.1
