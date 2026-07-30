@@ -517,7 +517,7 @@ export default function App() {
 >
     <span>{event.blocked ? "🚫 Blocked" : "✅ Allowed"}</span>
     {feedback[event.event_id] && (
-  <span style={{ color: "#22c55e", fontSize: "12px" }}>
+  <span style={{ color: "`#22c55e`", fontSize: "12px" }}>
     ✓ Marked as {feedback[event.event_id] === "false_positive" ? "False Positive" : "False Negative"}
   </span>
 )}
