@@ -106,6 +106,25 @@ export default function InstallSection() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
 
+  const codeLineStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '32px minmax(0, 1fr)',
+    columnGap: '8px',
+    alignItems: 'start'
+  };
+
+  const codeLineNumberStyle: React.CSSProperties = {
+    opacity: 0.3,
+    userSelect: 'none',
+    width: '32px',
+    flexShrink: 0
+  };
+
+  const codeLineContentStyle: React.CSSProperties = {
+    minWidth: 0,
+    overflowWrap: 'anywhere'
+  };
+
   const handleCopy = (cmd: string) => {
     navigator.clipboard.writeText(cmd);
     setCopiedCmd(cmd);
@@ -115,58 +134,56 @@ export default function InstallSection() {
   const renderCodeForPlatform = (plat: string) => {
     if (plat === 'Python') {
       return (
-        <code style={{ fontFamily: 'var(--mono)' }}>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>1</span><span><span className="cc"># 1. Install</span> <span className="ck">import</span> <span className="cy">tenet_ai</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>2</span><span><span className="cc"># 2. Initialize</span> <span>tenet</span> = tenet_ai.<span className="cf">Client</span>(<span>api_key</span>=<span className="cs">"your-key"</span>)</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>3</span><span><span className="cc"># 3. Intercept before any LLM call</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>4</span><span>user_input = <span className="cs">"Summarize the latest earnings report."</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>5</span><span>result = tenet.<span className="cf">check</span>(prompt=user_input, user_id=<span className="cs">"u-123"</span>)</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>6</span><span><span className="ck">if</span> result.blocked:</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>7</span><span>{'    '}<span className="ck">return</span> <span className="cs">"⛔ Blocked"</span>  <span className="cc"># &lt;5ms</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>8</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>9</span><span><span className="cc"># 4. Safe - call any LLM normally</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>10</span><span><span className="cc"># OpenAI</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>11</span><span>response = openai.<span className="cf">chat</span>(user_input)</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>12</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>13</span><span><span className="cc"># Claude</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>14</span><span>response = anthropic.<span className="cf">message</span>(user_input)</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>15</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>16</span><span><span className="cc"># Local</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>17</span><span>response = ollama.<span className="cf">generate</span>(user_input)</span></div>
-        </code>
+        <>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>1</span><span style={codeLineContentStyle}><span className="cc"># 1. Install</span> <span className="ck">import</span> <span className="cy">tenet_ai</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>2</span><span style={codeLineContentStyle}><span className="cc"># 2. Initialize</span> <span>tenet</span> = tenet_ai.<span className="cf">Client</span>(<span>api_key</span>=<span className="cs">"your-key"</span>)</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>3</span><span style={codeLineContentStyle}><span className="cc"># 3. Intercept before any LLM call</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>4</span><span style={codeLineContentStyle}>user_input = <span className="cs">"Summarize the latest earnings report."</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>5</span><span style={codeLineContentStyle}>result = tenet.<span className="cf">check</span>(prompt=user_input, user_id=<span className="cs">"u-123"</span>)</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>6</span><span style={codeLineContentStyle}><span className="ck">if</span> result.blocked:</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>7</span><span style={codeLineContentStyle}>{'    '}<span className="ck">return</span> <span className="cs">"⛔ Blocked"</span>  <span className="cc"># &lt;5ms</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>8</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>9</span><span style={codeLineContentStyle}><span className="cc"># 4. Safe - call any LLM normally</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>10</span><span style={codeLineContentStyle}><span className="cc"># OpenAI</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>11</span><span style={codeLineContentStyle}>response = openai.<span className="cf">chat</span>(user_input)</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>12</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>13</span><span style={codeLineContentStyle}><span className="cc"># Claude</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>14</span><span style={codeLineContentStyle}>response = anthropic.<span className="cf">message</span>(user_input)</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>15</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>16</span><span style={codeLineContentStyle}><span className="cc"># Local</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>17</span><span style={codeLineContentStyle}>response = ollama.<span className="cf">generate</span>(user_input)</span></div>
+        </>
       );
     } else if (plat === 'Node.js') {
       return (
-        <code style={{ fontFamily: 'var(--mono)' }}>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>1</span><span><span className="ck">import</span> {'{ TenetClient }'} <span className="ck">from</span> <span className="cs">'@tenet-ai/sdk'</span>;</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>2</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>3</span><span><span className="ck">const</span> tenet = <span className="ck">new</span> <span className="cf">TenetClient</span>({'{'} apiKey: <span className="cs">'your-key'</span> {'}'});</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>4</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>5</span><span><span className="cc">// Intercept as express middleware</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>6</span><span>app.<span className="cf">post</span>(<span className="cs">'/chat'</span>, <span className="ck">async</span> (req, res) =&gt; {'{'}</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>7</span><span>{'  '}<span className="ck">const</span> result = <span className="ck">await</span> tenet.<span className="cf">check</span>(req.body.prompt);</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>8</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>9</span><span>{'  '}<span className="ck">if</span> (result.blocked) {'{'}</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>10</span><span>{'    '}<span className="ck">return</span> res.<span className="cf">status</span>(403).<span className="cf">json</span>({'{'} error: <span className="cs">'⛔ Blocked'</span> {'}'});</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>11</span><span>{'  }'}</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>12</span><span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>13</span><span>{'  '}<span className="cc">// Safe to call OpenAI / Anthropic</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>14</span><span>{'  '}<span className="ck">const</span> llmResponse = <span className="ck">await</span> openai.<span className="cf">createChatCompletion</span>({'...'});</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>15</span><span>{'  '}res.<span className="cf">json</span>(llmResponse.data);</span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>16</span><span>{'}'});</span></div>
-        </code>
+        <>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>1</span><span style={codeLineContentStyle}><span className="ck">import</span> {'{ TenetClient }'} <span className="ck">from</span> <span className="cs">'@tenet-ai/sdk'</span>;</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>2</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>3</span><span style={codeLineContentStyle}><span className="ck">const</span> tenet = <span className="ck">new</span> <span className="cf">TenetClient</span>(&#123; apiKey: <span className="cs">'your-key'</span> &#125;);</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>4</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>5</span><span style={codeLineContentStyle}><span className="cc">// Intercept as express middleware</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>6</span><span style={codeLineContentStyle}>app.<span className="cf">post</span>(<span className="cs">'/chat'</span>, <span className="ck">async</span> (req, res) =&gt; &#123;</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>7</span><span style={codeLineContentStyle}>{'  '}<span className="ck">const</span> result = <span className="ck">await</span> tenet.<span className="cf">check</span>(req.body.prompt);</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>8</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>9</span><span style={codeLineContentStyle}>{'  '}<span className="ck">if</span> (result.blocked) &#123;</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>10</span><span style={codeLineContentStyle}>{'    '}return res.status(403).json(&#123; error: '⛔ Blocked' &#125;);</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>11</span><span style={codeLineContentStyle}>{'  '}&#125;</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>12</span><span style={codeLineContentStyle}></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>13</span><span style={codeLineContentStyle}>{'  '}<span className="cc">// Safe to call OpenAI / Anthropic</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>14</span><span style={codeLineContentStyle}>{'  '}<span className="ck">const</span> llmResponse = <span className="ck">await</span> openai.<span className="cf">createChatCompletion</span>({'...'});</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>15</span><span style={codeLineContentStyle}>{'  '}res.<span className="cf">json</span>(llmResponse.data);</span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>16</span><span style={codeLineContentStyle}>&#125;);</span></div>
+        </>
       );
     } else {
       return (
-        <code style={{ fontFamily: 'var(--mono)' }}>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>1</span><span><span className="cc"># General CLI deployment</span></span></div>
-          <div style={{ display: 'flex' }}><span style={{ opacity: 0.3, width: '32px', userSelect: 'none' }}>2</span><span>$ {plat === 'Docker' ? 'docker pull tenetai/core' : 'helm install tenet-ai ./chart'}</span></div>
-        </code>
+        <>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>1</span><span style={codeLineContentStyle}><span className="cc"># General CLI deployment</span></span></div>
+          <div style={codeLineStyle}><span style={codeLineNumberStyle}>2</span><span style={codeLineContentStyle}>$ {plat === 'Docker' ? 'docker pull tenetai/core' : 'helm install tenet-ai ./chart'}</span></div>
+        </>
       );
     }
   };
-
-  const selectedInstall = INSTALLS[selectedIndex];
 
   return (
     <section className="section" id="download" aria-label="Installation Instructions">
@@ -205,6 +222,7 @@ export default function InstallSection() {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>{d.title}</div>
                         <div style={{ fontSize: '13px', color: '#64748B' }}>{d.sub}</div>
+                        
                         {isSelected && (
                           <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div 
@@ -228,11 +246,26 @@ export default function InstallSection() {
                                 <span style={{ color: '#64748B' }}>$</span>
                                 <span>{d.cmd}</span>
                               </div>
-                              <span style={{ fontSize: '11px', color: '#94A3B8' }}>
-                                {copiedCmd === d.cmd ? 'Copied!' : 'Copy'}
+                              <span style={{ fontSize: '11px', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                {copiedCmd === d.cmd ? (
+                                  <>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                    Copy
+                                  </>
+                                )}
                               </span>
                             </div>
-
+                            
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                               {d.feats.map((f, j) => (
                                 <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569', fontWeight: 500 }}>
@@ -249,12 +282,13 @@ export default function InstallSection() {
                               className="btn btn-outline btn-sm" 
                               style={{ width: 'fit-content', marginTop: '8px', padding: '6px 16px', fontSize: '12px' }}
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><path d="M21 15v4a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2h-9a2 2 0 0 1-2 2v1"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                               Download Source
                             </a>
                           </div>
                         )}
                       </div>
+                      
                       <div style={{ padding: '4px 8px', borderRadius: '4px', background: '#F3E8FF', color: '#A855F7', fontSize: '11px', fontWeight: 700, marginRight: '16px', marginTop: isSelected ? '4px' : '0' }}>
                         {d.plat}
                       </div>
@@ -285,7 +319,7 @@ export default function InstallSection() {
                   Integration example
                 </div>
                 <div style={{ padding: '4px 10px', borderRadius: '6px', background: '#F3E8FF', color: '#A855F7', fontSize: '11px', fontWeight: 700 }}>
-                  {selectedInstall.plat}
+                  {INSTALLS[selectedIndex].plat}
                 </div>
               </div>
 
@@ -297,13 +331,35 @@ export default function InstallSection() {
                       <div className="code-dot2" style={{ background: '#F59E0B' }} />
                       <div className="code-dot2" style={{ background: '#22C55E' }} />
                     </div>
-                    <span className="code-file" style={{ color: '#94A3B8', fontSize: '13px', fontFamily: 'var(--mono)', flex: 1 }}>integration_example.{selectedInstall.plat === 'Python' ? 'py' : selectedInstall.plat === 'Node.js' ? 'ts' : 'sh'}</span>
-                    <div onClick={() => handleCopy(selectedInstall.cmd)} style={{ cursor: 'pointer', color: '#94A3B8' }} title="Copy integration code">
-                      {copiedCmd ? <span style={{fontSize: '11px'}}>Copied!</span> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>}
+                    <span className="code-file" style={{ color: '`#94A3B8`', fontSize: '13px', fontFamily: 'var(--mono)', flex: 1 }}>
+                      integration_example.{INSTALLS[selectedIndex].plat === 'Python' ? 'py' : INSTALLS[selectedIndex].plat === 'Node.js' ? 'ts' : 'sh'}
+                    </span>
+                    <div onClick={() => handleCopy(INSTALLS[selectedIndex].cmd)} style={{ cursor: 'pointer', color: '`#94A3B8`', display: 'flex', alignItems: 'center', gap: '4px' }} title="Copy integration code">
+                      {copiedCmd === INSTALLS[selectedIndex].cmd ? (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          <span style={{ fontSize: '11px' }}>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                          <span style={{ fontSize: '11px' }}>Copy</span>
+                        </>
+                      )}
                     </div>
                   </div>
-                  <pre className="code-body" style={{ padding: '24px', fontSize: '13px', lineHeight: 1.7, margin: 0, overflowX: 'auto', background: '#111827', color: '#F8FAFC' }}>
-                    {renderCodeForPlatform(selectedInstall.plat)}
+                  <pre
+                    className="code-body"
+                    role="code"
+                    aria-label={`Integration example for ${INSTALLS[selectedIndex].plat}`}
+                    style={{ margin: 0, padding: '20px', overflowX: 'auto', fontSize: '13px', color: '#F8FAFC', fontFamily: 'var(--mono)', whiteSpace: 'pre', lineHeight: '1.4' }}
+                  >
+                    {renderCodeForPlatform(INSTALLS[selectedIndex].plat)}
                   </pre>
                 </div>
               </div>
