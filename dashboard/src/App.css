@@ -819,7 +819,7 @@ table th:last-child {
     min-width: 220px;
 }
 
-table button {
+.feedback-btn {
     margin-top: 5px;
-    padding: 5px 8px;
+    padding: 8px;
 }
