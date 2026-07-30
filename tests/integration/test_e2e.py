@@ -11,10 +11,11 @@ import os
 from typing import Generator
 import subprocess
 
-# Service URLs
-INGEST_URL = os.getenv("INGEST_URL", "http://localhost:8000")
-ANALYZER_URL = os.getenv("ANALYZER_URL", "http://localhost:8100")
-API_KEY = os.getenv("API_KEY", "tenet-dev-key-change-in-production")
+from services.utils.config import settings
+
+INGEST_URL = settings.INGEST_URL
+ANALYZER_URL = settings.ANALYZER_URL
+API_KEY = settings.API_KEY
 
 
 @pytest.fixture(scope="module")

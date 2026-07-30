@@ -36,16 +36,18 @@ from services.utils.logging_config import setup_logging, correlation_id_var
 logger = setup_logging(__name__)
 
 
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
-REDIS_TIMEOUT_S = float(os.getenv("REDIS_TIMEOUT_S", 2.0))
-API_HOST = os.getenv("API_HOST", "0.0.0.0")
-API_PORT = int(os.getenv("API_PORT", 8000))
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+from services.utils.config import settings
 
-CB_FAILURE_THRESHOLD = int(os.getenv("CB_FAILURE_THRESHOLD", 3))
-CB_RECOVERY_TIMEOUT_S = float(os.getenv("CB_RECOVERY_TIMEOUT_S", 30.0))
-CB_HALF_OPEN_MAX_CALLS = int(os.getenv("CB_HALF_OPEN_MAX_CALLS", 1))
+REDIS_HOST = settings.REDIS_HOST
+REDIS_PORT = settings.REDIS_PORT
+REDIS_TIMEOUT_S = settings.REDIS_TIMEOUT_S
+API_HOST = settings.API_HOST
+API_PORT = settings.API_PORT
+CORS_ORIGINS = settings.CORS_ORIGINS.split(",")
+
+CB_FAILURE_THRESHOLD = settings.CB_FAILURE_THRESHOLD
+CB_RECOVERY_TIMEOUT_S = settings.CB_RECOVERY_TIMEOUT_S
+CB_HALF_OPEN_MAX_CALLS = settings.CB_HALF_OPEN_MAX_CALLS
 
 
 class CircuitState(Enum):

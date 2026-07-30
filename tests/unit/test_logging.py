@@ -35,8 +35,9 @@ class TestLoggingConfig:
 
     def test_log_level_from_environment(self, monkeypatch):
         """Test that LOG_LEVEL environment variable sets the correct level."""
-        # Arrange: Mock the environment variable
-        monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+        # Arrange: Mock the settings variable
+        from services.utils.config import settings
+        monkeypatch.setattr(settings, "LOG_LEVEL", "DEBUG")
         
         # Act
         logger = setup_logging("test_env_logger")

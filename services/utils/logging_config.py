@@ -51,7 +51,8 @@ def setup_logging(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
 
     #add log level configurations from environment
-    log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+    from services.utils.config import settings
+    log_level_str = settings.LOG_LEVEL.upper()
     logger.setLevel(getattr(logging, log_level_str, logging.INFO))
 
     if not logger.handlers:

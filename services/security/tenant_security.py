@@ -51,20 +51,23 @@ class SecurityManager:
         self._last_hash = "0" * 64
         self._audit_lock = threading.Lock()
 
-        self.audit_secret = os.getenv("AUDIT_HMAC_SECRET", "tenet-audit-dev-secret")
-        self.audit_log_path = Path(os.getenv("AUDIT_LOG_PATH", "./logs/audit.log"))
+        from services.utils.config import settings
+
+        self.audit_secret = settings.AUDIT_HMAC_SECRET
+        self.audit_log_path = Path(settings.AUDIT_LOG_PATH)
         self.audit_log_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.blocked_orgs = {
-            org.strip() for org in os.getenv("BLOCKED_ORGS", "").split(",") if org.strip()
+            org.strip() for org in settings.BLOCKED_ORGS.split(",") if org.strip()
         }
         self.blocked_key_ids = {
-            key.strip() for key in os.getenv("BLOCKED_KEY_IDS", "").split(",") if key.strip()
+            key.strip() for key in settings.BLOCKED_KEY_IDS.split(",") if key.strip()
         }
         self.keys_config = self._load_keys_config()
 
     def _load_keys_config(self) -> dict[str, dict[str, Any]]:
-        config_raw = os.getenv("TENET_API_KEYS_JSON", "")
+        from services.utils.config import settings
+        config_raw = settings.TENET_API_KEYS_JSON
         if config_raw:
             try:
                 parsed = json.loads(config_raw)
@@ -74,14 +77,14 @@ class SecurityManager:
             except Exception as exc:  # noqa: BLE001
                 raise RuntimeError(f"Invalid TENET_API_KEYS_JSON: {exc}") from exc
 
-        fallback_key = os.getenv("API_KEY", "tenet-dev-key-change-in-production")
+        fallback_key = settings.API_KEY
         return {
             fallback_key: {
-                "org_id": os.getenv("DEFAULT_ORG_ID", "default-org"),
+                "org_id": settings.DEFAULT_ORG_ID,
                 "key_id": "default-key",
-                "role": os.getenv("DEFAULT_API_ROLE", "admin"),
-                "rpm_limit": int(os.getenv("DEFAULT_RPM_LIMIT", "120")),
-                "daily_quota": int(os.getenv("DEFAULT_DAILY_QUOTA", "5000")),
+                "role": settings.DEFAULT_API_ROLE,
+                "rpm_limit": settings.DEFAULT_RPM_LIMIT,
+                "daily_quota": settings.DEFAULT_DAILY_QUOTA,
             }
         }
 

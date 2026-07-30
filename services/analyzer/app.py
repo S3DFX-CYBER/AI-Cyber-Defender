@@ -30,13 +30,15 @@ from prometheus_client import make_asgi_app
 logger = setup_logging(__name__)
 
 # Environment configuration
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
-API_HOST = os.getenv("API_HOST", "0.0.0.0")
-API_PORT = int(os.getenv("API_PORT", 8100))
-MODEL_PATH = os.getenv("MODEL_PATH", "./models/trained")
-PROMPT_INJECTION_THRESHOLD = float(os.getenv("PROMPT_INJECTION_THRESHOLD", 0.75))
-SHUTDOWN_TIMEOUT = float(os.getenv("SHUTDOWN_TIMEOUT", 10.0))
+from services.utils.config import settings
+
+REDIS_HOST = settings.REDIS_HOST
+REDIS_PORT = settings.REDIS_PORT
+API_HOST = settings.API_HOST
+API_PORT = settings.API_PORT
+MODEL_PATH = settings.MODEL_PATH
+PROMPT_INJECTION_THRESHOLD = settings.PROMPT_INJECTION_THRESHOLD
+SHUTDOWN_TIMEOUT = settings.SHUTDOWN_TIMEOUT
 
 # FastAPI app
 app = FastAPI(
@@ -53,7 +55,7 @@ api_key_scheme = APIKeyHeader(
 )
 
 # CORS middleware - configurable origins for security
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "https://localhost:3000,https://localhost:5173")
+CORS_ALLOWED_ORIGINS = settings.CORS_ALLOWED_ORIGINS
 allowed_origins = [origin.strip() for origin in CORS_ALLOWED_ORIGINS.split(",")]
 app.add_middleware(PrometheusMiddleware)
 app.add_middleware(

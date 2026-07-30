@@ -29,8 +29,9 @@ from services.utils.logging_config import setup_logging
 
 logger = setup_logging(__name__)
 
-# Default paths
-DEFAULT_MODEL_PATH = os.getenv("MODEL_PATH", "./models/trained")
+from services.utils.config import settings
+
+DEFAULT_MODEL_PATH = settings.MODEL_PATH
 REQUIRED_METADATA_FIELDS = [
     "schema_version",
     "trained_at",

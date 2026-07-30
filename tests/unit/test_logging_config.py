@@ -28,32 +28,31 @@ class TestSetupLogging:
 
     def test_default_log_level_is_info(self):
         """Test that default log level is INFO when LOG_LEVEL env var is not set."""
-        with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("LOG_LEVEL", None)
+        with patch("services.utils.config.settings.LOG_LEVEL", "INFO"):
             logger = setup_logging("test_default_level")
             assert logger.level == logging.INFO
 
     def test_log_level_from_environment(self):
         """Test that log level is set from LOG_LEVEL environment variable."""
-        with patch.dict(os.environ, {"LOG_LEVEL": "DEBUG"}):
+        with patch("services.utils.config.settings.LOG_LEVEL", "DEBUG"):
             logger = setup_logging("test_debug_level")
             assert logger.level == logging.DEBUG
 
     def test_log_level_warning_from_environment(self):
         """Test that WARNING log level is set correctly from environment."""
-        with patch.dict(os.environ, {"LOG_LEVEL": "WARNING"}):
+        with patch("services.utils.config.settings.LOG_LEVEL", "WARNING"):
             logger = setup_logging("test_warning_level")
             assert logger.level == logging.WARNING
 
     def test_log_level_error_from_environment(self):
         """Test that ERROR log level is set correctly from environment."""
-        with patch.dict(os.environ, {"LOG_LEVEL": "ERROR"}):
+        with patch("services.utils.config.settings.LOG_LEVEL", "ERROR"):
             logger = setup_logging("test_error_level")
             assert logger.level == logging.ERROR
 
     def test_invalid_log_level_defaults_to_info(self):
         """Test that invalid LOG_LEVEL defaults to INFO."""
-        with patch.dict(os.environ, {"LOG_LEVEL": "INVALID_LEVEL"}):
+        with patch("services.utils.config.settings.LOG_LEVEL", "INVALID_LEVEL"):
             logger = setup_logging("test_invalid_level")
             assert logger.level == logging.INFO
 
@@ -116,14 +115,14 @@ class TestLogLevelCaseInsensitive:
     """Tests for case insensitivity of LOG_LEVEL env variable."""
 
     def test_lowercase_log_level(self):
-        """Test that lowercase log level env var is handled correctly."""
-        with patch.dict(os.environ, {"LOG_LEVEL": "debug"}):
-            logger = setup_logging("test_lowercase")
+        """Test that log level works even if specified in lowercase."""
+        with patch("services.utils.config.settings.LOG_LEVEL", "debug"):
+            logger = setup_logging("test_lower_case")
             assert logger.level == logging.DEBUG
 
     def test_mixed_case_log_level(self):
-        """Test that mixed case log level env var is handled correctly."""
-        with patch.dict(os.environ, {"LOG_LEVEL": "Warning"}):
+        """Test that log level works even if specified in mixed case."""
+        with patch("services.utils.config.settings.LOG_LEVEL", "Warning"):
             logger = setup_logging("test_mixed_case")
             assert logger.level == logging.WARNING
 
