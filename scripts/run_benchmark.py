@@ -53,9 +53,10 @@ def main():
     parser.add_argument(
         "--min-f1",
         type=float,
-        default=0.50,
-        help="Minimum required F1 score threshold when checking regressions (default: 0.50)"
+        default=0.85,
+        help="Minimum required F1 score threshold when checking regressions (default: 0.85)"
     )
+
 
     parser.add_argument(
         "--min-precision",

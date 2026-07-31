@@ -182,18 +182,27 @@ class DetectionBenchmarkRunner:
             md.append("| --- | --- | --- | --- | --- | --- |")
             for cat, cat_m in report["per_category"].items():
                 samples_cnt = cat_m.get("category_samples", cat_m["total_samples"])
-                md.append(
-                    f"| `{cat}` | {samples_cnt} | `{cat_m['precision']:.4f}` | "
-                    f"`{cat_m['recall']:.4f}` | `{cat_m['f1_score']:.4f}` | `{cat_m['accuracy']:.4f}` |"
-                )
+                if cat == "benign" or cat_m.get("is_benign_cat", False):
+                    # Benign slice contains no positive ground truth samples; Precision/Recall/F1 are undefined/N/A
+                    md.append(
+                        f"| `{cat}` | {samples_cnt} | `N/A` | "
+                        f"`N/A` | `N/A` | `{cat_m['accuracy']:.4f}` |"
+                    )
+                else:
+                    md.append(
+                        f"| `{cat}` | {samples_cnt} | `{cat_m['precision']:.4f}` | "
+                        f"`{cat_m['recall']:.4f}` | `{cat_m['f1_score']:.4f}` | `{cat_m['accuracy']:.4f}` |"
+                    )
             md.append("")
+
 
         return "\n".join(md)
 
     @staticmethod
     def check_regression(
-        current_report: Dict[str, Any], baseline_path: Optional[str] = None, min_f1: float = 0.50, min_precision: float = 0.85
+        current_report: Dict[str, Any], baseline_path: Optional[str] = None, min_f1: float = 0.85, min_precision: float = 0.85
     ) -> List[str]:
+
         """Compare current report against baseline or absolute thresholds for regression detection."""
         regressions: List[str] = []
         summary = current_report["summary"]

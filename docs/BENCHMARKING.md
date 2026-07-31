@@ -33,7 +33,7 @@ python scripts/run_benchmark.py
 | `--baseline` | Path to baseline JSON report for regression comparison | `None` |
 | `--threshold` | Decision threshold for risk score | `0.5` |
 | `--fail-on-regression` | Exit with code `1` if quality regressions are found | `Disabled` |
-| `--min-f1` | Minimum allowed F1 score threshold | `0.50` |
+| `--min-f1` | Minimum allowed F1 score threshold | `0.85` |
 | `--min-precision` | Minimum allowed Precision threshold | `0.85` |
 
 ---
@@ -46,7 +46,8 @@ Benchmarking runs automatically in GitHub Actions CI whenever a Pull Request mod
 - `data/**`
 - `scripts/run_benchmark.py`
 
-If detection precision falls below `0.85` or F1 score falls below threshold (`0.50`), CI checks will fail, preventing performance regressions.
+If detection precision or F1 score falls below threshold (`0.85`), CI checks will fail, preventing performance regressions.
+
 
 
 ---
