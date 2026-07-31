@@ -19,7 +19,7 @@ jobs:
       - name: Wait for analyzer
         run: |
           for i in {1..30}; do
-            if curl --fail http://127.0.0.8100/health; then
+            if curl --fail http://127.0.0.1:8100/health; then
               echo "Analyzer is ready"
               exit 0
             fi
@@ -34,4 +34,4 @@ jobs:
       - uses: grafana/setup-k6-action@v1
 
       - name: Run k6 analysis load test
-      - run: k6 run load-tests/analyze.js
+        run: k6 run load-tests/analyze.js
