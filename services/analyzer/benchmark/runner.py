@@ -117,9 +117,11 @@ class DetectionBenchmarkRunner:
 
         per_category_metrics = {}
         for cat, data in category_breakdown.items():
-            if data.get("is_benign_cat", False) or not benign_true:
+            is_benign_slice = data.get("is_benign_cat", False)
+            if is_benign_slice or not benign_true:
                 cat_m = calculate_metrics(data["y_true"], data["y_scores"], threshold=threshold)
                 cat_m["category_samples"] = len(data["y_true"])
+                cat_m["is_benign_cat"] = is_benign_slice
                 per_category_metrics[cat] = cat_m
             else:
                 # Filter out benign items tagged with this category to prevent double counting
@@ -130,7 +132,9 @@ class DetectionBenchmarkRunner:
                 combined_y_scores = category_malicious_scores + benign_scores
                 cat_metrics = calculate_metrics(combined_y_true, combined_y_scores, threshold=threshold)
                 cat_metrics["category_samples"] = len(category_malicious_true)
+                cat_metrics["is_benign_cat"] = False
                 per_category_metrics[cat] = cat_metrics
+
 
         report = {
             "timestamp": datetime.now(timezone.utc).isoformat(),

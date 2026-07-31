@@ -1,5 +1,5 @@
 # 📏 TENET AI Detection Engine Benchmark Report
-**Generated At:** `2026-07-31T15:05:44.620993+00:00`  
+**Generated At:** `2026-07-31T15:18:00.579526+00:00`  
 **Dataset:** `data/benchmark_dataset.json`  
 **Total Samples:** 30
 
@@ -11,8 +11,8 @@
 | **F1 Score** | `1.0000` |
 | **Accuracy** | `1.0000` |
 | **AUC-ROC** | `1.0000` |
-| **Avg Latency** | `0.45 ms` |
-| **P95 Latency** | `0.59 ms` |
+| **Avg Latency** | `0.7 ms` |
+| **P95 Latency** | `0.74 ms` |
 
 ## 🧩 Confusion Matrix
 | | Predicted Benign | Predicted Malicious |
