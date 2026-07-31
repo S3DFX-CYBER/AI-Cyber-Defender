@@ -22,7 +22,7 @@ export default function () {
         }
     };
     const res = http.post(
-        "http://127.0.0.1:8101/v1/analyze",
+        "http://127.0.0.1:8100/v1/analyze",
         payload,
         params
     );
