@@ -7,7 +7,7 @@ COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Copy application code
-COPY services/analyzer/ /app/
+COPY services/ /app/services/
 
 # Create models directory
 RUN mkdir -p /app/models/trained
@@ -20,4 +20,4 @@ USER tenet
 EXPOSE 8100
 
 # Run the application
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8100"]
+CMD ["uvicorn", "services.analyzer.app:app", "--host", "0.0.0.0", "--port", "8100"]
