@@ -81,7 +81,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./services/ingest:/app
+      - .:/app
       - ./data:/data
     networks:
       - tenet-network
@@ -108,7 +108,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./services/analyzer:/app
+      - .:/app
       - ./models:/app/models
       - ./data:/data
     networks:
