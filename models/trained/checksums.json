@@ -1,9 +1,9 @@
 {
   "algorithm": "sha256",
-  "generated_at": "2026-04-07T18:09:54.256201Z",
+  "generated_at": "2026-08-01T17:06:12.798927Z",
   "artifacts": {
-    "prompt_detector.joblib": "a496cbdb38443a49dab34b9c006cc68e84942952b326f9aa23ed8a7c78697f88",
-    "vectorizer.joblib": "7f7cff4c58fa7eafc8a94288a9ba7d215ff2dbef8750b0f21c4e0db9573fd94e",
-    "metadata.json": "e213fb0ca64b8b64acc3ada6ff3e00200aa62311df9f5a16a3d70fd9a9d4ff3f"
+    "prompt_detector.joblib": "327de7238ce901f26c2dc0b5cd4cfcef1deaeb75d1e5f133619b6b5980033e61",
+    "vectorizer.joblib": "a690457647ce21d2e5ad9b38168002363772e5bb50c217972ca573b3e93db516",
+    "metadata.json": "74c214f0948cef864eb23684f9ed083cc15123a41d4708633498a264ec0e588e"
   }
 }

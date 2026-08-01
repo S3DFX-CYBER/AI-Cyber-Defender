@@ -116,7 +116,33 @@ class HealthResponse(BaseModel):
     redis_connected: bool
 
 
+def load_ml_models():
+    """Load ML model and vectorizer from MODEL_PATH into global memory."""
+    global ml_model, vectorizer
+    if joblib is None:
+        logger.warning("joblib is not installed; ML models cannot be loaded.")
+        return False
+
+    try:
+        model_dir = Path(MODEL_PATH)
+        model_file = model_dir / "prompt_detector.joblib"
+        vectorizer_file = model_dir / "vectorizer.joblib"
+        
+        if model_file.exists() and vectorizer_file.exists():
+            ml_model = joblib.load(model_file)
+            vectorizer = joblib.load(vectorizer_file)
+            logger.info("ML models loaded successfully")
+            return True
+        else:
+            logger.warning(f"ML models not found at {MODEL_PATH}")
+            return False
+    except Exception:
+        logger.exception("Failed to load ML models")
+        return False
+
+
 @app.on_event("startup")
+
 async def startup():
     """Initialize connections and models on startup."""
     global redis_client, ml_model, vectorizer, background_task, stop_event
@@ -135,19 +161,8 @@ async def startup():
         redis_client = None
     
     # Load ML models
-    try:
-        model_dir = Path(MODEL_PATH)
-        model_file = model_dir / "prompt_detector.joblib"
-        vectorizer_file = model_dir / "vectorizer.joblib"
-        
-        if model_file.exists() and vectorizer_file.exists():
-            ml_model = joblib.load(model_file)
-            vectorizer = joblib.load(vectorizer_file)
-            logger.info("ML models loaded successfully")
-        else:
-            logger.warning(f"ML models not found at {MODEL_PATH}")
-    except Exception:
-        logger.exception("Failed to load ML models")
+    load_ml_models()
+
     
     # Create stop event and start background processor
     stop_event = asyncio.Event()
