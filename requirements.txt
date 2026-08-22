@@ -24,7 +24,7 @@ joblib>=1.5.3
 python-multipart>=0.0.32
 
 # Database & Cache
-redis>=8.0.1
+redis>=8.1.0
 psycopg2-binary>=2.9.12
 
 # HTTP & APIs
