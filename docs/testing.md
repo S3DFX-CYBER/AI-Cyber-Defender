@@ -796,7 +796,7 @@ See `.github/workflows/ci.yml`:
 ## ❓ Questions or Issues?
 
 - 📖 Check the [CONTRIBUTING.md](../CONTRIBUTING.md) guide
-- 🐛 Open an issue on [GitHub Issues](https://github.com/yourusername/TENET-AI/issues)
-- 💬 Join discussions on [GitHub Discussions](https://github.com/yourusername/TENET-AI/discussions)
+- 🐛 Open an issue on [GitHub Issues](https://github.com/TENET-DEV-AI/TENET-AI/issues)
+- 💬 Join discussions on [GitHub Discussions](https://github.com/TENET-DEV-AI/TENET-AI/discussions)
 
 Happy testing! 🎉
