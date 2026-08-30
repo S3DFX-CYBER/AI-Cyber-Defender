@@ -13,6 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Create logs directory
+        run: mkdir -p logs && chmod 777 logs
+
       - name: Start analyzer service
         run: docker compose up -d analyzer
       
