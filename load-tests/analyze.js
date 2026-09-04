@@ -2,8 +2,16 @@ import http from "k6/http";
 import { check } from "k6";
 
 export const options = {
-    vus: 20,
-    duration: "30s",
+    scenarios: {
+        analysis: {
+            executor: "constant-arrival-rate",
+            rate: 1,
+            timeUnit: "1s",
+            duration: "30s",
+            preAllocatedVUs: 1,
+            maxVUs: 2,
+        },
+    },
 
     thresholds: {
         http_req_failed: ["rate<0.01"],
